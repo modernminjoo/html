@@ -1,0 +1,1182 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>보도자료 HTML 정리기</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#EDF0F3; --surface:#FFFFFF; --sunken:#F5F7F9; --ink:#17222D; --muted:#566575;
+  --line:#D3DAE1; --line-strong:#B9C3CD; --accent:#1D4E89; --accent-hover:#163E6E; --accent-soft:#E4ECF6; --accent-ink:#FFFFFF;
+  --warn-bg:#FFF4DA; --warn-ink:#6B4300; --warn-line:#EACB86; --warn-bar:#D29A2A;
+  --ok:#1D6B45; --ok-soft:#E3F3EA;
+  --shadow:0 1px 2px rgba(23,34,45,.06),0 4px 14px rgba(23,34,45,.05);
+  --font:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic","맑은 고딕",sans-serif;
+  --mono:ui-monospace,"D2Coding",Consolas,"Courier New",monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F151B; --surface:#172029; --sunken:#121A21; --ink:#E4EAF0; --muted:#98A7B5;
+    --line:#2A3642; --line-strong:#3A4856; --accent:#86B4EC; --accent-hover:#A6C8F2; --accent-soft:#1C2C3F; --accent-ink:#0B1624;
+    --warn-bg:#33280F; --warn-ink:#F0CE7C; --warn-line:#5E4A20; --warn-bar:#C8912A;
+    --ok:#7DD3A6; --ok-soft:#153325; --shadow:none;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F151B; --surface:#172029; --sunken:#121A21; --ink:#E4EAF0; --muted:#98A7B5;
+  --line:#2A3642; --line-strong:#3A4856; --accent:#86B4EC; --accent-hover:#A6C8F2; --accent-soft:#1C2C3F; --accent-ink:#0B1624;
+  --warn-bg:#33280F; --warn-ink:#F0CE7C; --warn-line:#5E4A20; --warn-bar:#C8912A;
+  --ok:#7DD3A6; --ok-soft:#153325; --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--font);font-size:15px;line-height:1.6}
+.wrap{max-width:1320px;margin:0 auto;padding:26px 22px 60px}
+.skip{position:absolute;left:-999px;top:8px;background:var(--accent);color:var(--accent-ink);padding:8px 12px;border-radius:6px;z-index:10}
+.skip:focus{left:8px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* 머리 */
+.top{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,460px);gap:24px;align-items:start}
+.top h1{font-size:1.7rem;font-weight:700;margin:2px 0 6px;letter-spacing:-0.01em}
+.top p{margin:0;color:var(--muted);max-width:60ch}
+.note{background:var(--warn-bg);border:1px solid var(--warn-line);border-left:5px solid var(--warn-bar);border-radius:10px;padding:13px 18px;font-size:.87rem}
+.note h2{font-size:.98rem;margin:0 0 6px;color:var(--warn-ink)}
+.note ul{margin:0;padding-left:1.1em}
+.note li{margin:3px 0;line-height:1.55}
+.note b{font-weight:600}
+
+/* 진행 단계: 지금 어디까지 했는지 보여줌 */
+.steps{list-style:none;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:20px 0 20px;padding:0;background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;box-shadow:var(--shadow)}
+.steps li{position:relative;padding:12px 16px;display:flex;gap:11px;align-items:center;font-size:.9rem;color:var(--muted);border-right:1px solid var(--line)}
+.steps li:last-child{border-right:0}
+.steps .dot{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:.8rem;font-weight:700;border:2px solid var(--line-strong);color:var(--muted);background:var(--surface)}
+.steps li.current{color:var(--ink);font-weight:600;background:var(--accent-soft)}
+.steps li.current::after{content:"";position:absolute;left:0;right:0;bottom:0;height:3px;background:var(--accent)}
+.steps li.current .dot{border-color:var(--accent);background:var(--accent);color:var(--accent-ink)}
+.steps li.done{color:var(--ink)}
+.steps li.done .dot{border-color:var(--ok);background:var(--ok);color:var(--surface);font-size:0}
+.steps li.done .dot::before{content:"✓";font-size:.85rem}
+kbd{font-family:var(--font);font-size:.8rem;font-weight:500;border:1px solid var(--line-strong);border-bottom-width:2px;border-radius:5px;padding:0 6px;background:var(--surface);color:var(--ink);white-space:nowrap}
+
+/* 배치 */
+.grid{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:20px;align-items:start}
+.side{display:grid;gap:16px;position:sticky;top:16px;max-height:calc(100vh - 32px);overflow:auto;padding-bottom:2px;scrollbar-width:thin}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow)}
+.panel > h2{display:flex;align-items:center;gap:8px;font-size:.98rem;margin:0;padding:12px 16px;border-bottom:1px solid var(--line)}
+.pad{padding:14px 16px}
+
+button{font-family:inherit;font-size:.9rem;border-radius:8px;padding:8px 14px;cursor:pointer;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink)}
+button:hover{border-color:var(--accent);color:var(--accent)}
+:focus-visible{outline:3px solid color-mix(in srgb,var(--accent) 55%,transparent);outline-offset:2px}
+button.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-weight:600}
+button.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover);color:var(--accent-ink)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button.link{border:0;background:none;padding:2px 0;color:var(--accent);text-decoration:underline;text-underline-offset:3px}
+button.small{padding:5px 11px;font-size:.84rem}
+
+/* 붙여넣기 */
+#pasteZone{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:200px;margin:14px;padding:18px;border:2px dashed var(--accent);border-radius:12px;background:var(--accent-soft);text-align:center;cursor:text;outline:none;caret-color:transparent;user-select:none}
+#pasteZone:focus{border-style:solid;box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 22%,transparent)}
+#pasteZone.hot{background:color-mix(in srgb,var(--accent) 16%,var(--surface))}
+#pasteZone .big{font-size:1.08rem;font-weight:700;color:var(--ink)}
+#pasteZone .sub{font-size:.88rem;color:var(--muted)}
+#pasteZone .ladder{font-size:.9rem;color:var(--accent);text-align:left;line-height:1.5;margin-bottom:4px}
+#pasteZone .ladder span{display:block}
+.zoneFoot{display:flex;justify-content:center;margin:-4px 14px 14px}
+
+.doc{padding:14px 16px}
+.doc .label{font-size:.8rem;color:var(--muted);margin:0 0 2px}
+.doc .title{font-weight:600;font-size:1rem;line-height:1.45;margin:0 0 10px;overflow-wrap:anywhere}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 12px;padding:0;list-style:none}
+.chips li{font-size:.82rem;padding:2px 10px;border-radius:999px;background:var(--sunken);border:1px solid var(--line);color:var(--muted)}
+.chips li.warn{background:var(--warn-bg);border-color:var(--warn-line);color:var(--warn-ink);font-weight:600}
+.chips li.good{background:var(--ok-soft);border-color:transparent;color:var(--ok);font-weight:600}
+.doc .actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.doc .tip{font-size:.8rem;color:var(--muted);margin:10px 0 0}
+#status{margin:0 16px 12px;font-size:.86rem;color:var(--muted)}
+#status.err{color:#B3261E;font-weight:600}
+@media (prefers-color-scheme: dark){ #status.err{color:#FF9C92} }
+
+/* 확인할 점 */
+.count{min-width:22px;height:22px;padding:0 7px;border-radius:999px;background:var(--warn-bar);color:#1b1300;font-size:.78rem;display:inline-grid;place-items:center}
+.count[hidden]{display:none}
+.count.zero{background:var(--ok);color:var(--surface)}
+#checks{margin:0;padding:0;list-style:none;display:grid;gap:7px}
+#checks li{display:flex;gap:10px;align-items:flex-start;justify-content:space-between;padding:9px 11px;border-radius:8px;background:var(--warn-bg);color:var(--warn-ink);border:1px solid var(--warn-line);font-size:.87rem;line-height:1.5}
+#checks li.info{background:var(--sunken);color:var(--muted);border-color:var(--line)}
+#checks li button{flex:none;font-size:.8rem;padding:3px 9px;background:var(--surface)}
+.empty{color:var(--muted);font-size:.88rem;margin:0}
+.after{margin-top:14px;padding-top:12px;border-top:1px solid var(--line)}
+.after h3{display:flex;justify-content:space-between;align-items:baseline;font-size:.9rem;margin:0 0 6px}
+.after h3 span{font-weight:500;color:var(--muted);font-size:.82rem}
+.after label{display:flex;gap:9px;align-items:flex-start;padding:5px 0;font-size:.88rem;cursor:pointer}
+.after input{margin-top:4px;width:17px;height:17px;accent-color:var(--ok);flex:none}
+.after input:checked + span{color:var(--muted);text-decoration:line-through}
+
+/* 모양 설정 */
+.looks{border:0;margin:0;padding:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.look{display:block;cursor:pointer}
+.look input{position:absolute;opacity:0}
+.look span{display:block;height:100%;padding:8px 8px 9px;border:1px solid var(--line);border-radius:8px;text-align:center;font-size:.84rem;font-weight:600}
+.look small{display:block;font-weight:400;color:var(--muted);font-size:.74rem;line-height:1.35;margin-top:2px}
+.look input:checked + span{border-color:var(--accent);background:var(--accent-soft);box-shadow:inset 0 0 0 1px var(--accent)}
+.look input:focus-visible + span{outline:3px solid color-mix(in srgb,var(--accent) 55%,transparent);outline-offset:2px}
+.swatch{display:block;height:22px;margin:0 auto 6px;width:100%;border-radius:4px;border:1px solid var(--line)}
+.sw-full{background:linear-gradient(var(--surface),var(--surface)) padding-box;background-image:linear-gradient(90deg,#1D4E89 0 4px,#F4F7FB 4px)}
+.sw-border{background:repeating-linear-gradient(90deg,var(--surface) 0 18px,#999 18px 19px)}
+.sw-none{background:var(--surface)}
+.more{margin-top:12px}
+.more summary{cursor:pointer;font-size:.86rem;font-weight:600;color:var(--muted);padding:4px 0}
+.more fieldset{border:0;margin:6px 0 10px;padding:0}
+.opt{display:flex;gap:9px;align-items:flex-start;padding:4px 0;font-size:.86rem}
+.opt input{margin-top:4px;width:16px;height:16px;accent-color:var(--accent);flex:none}
+
+/* 결과 */
+.result{min-width:0}
+.toolbar{position:sticky;top:0;z-index:5;display:flex;align-items:center;gap:6px;padding:8px 10px 0 10px;background:var(--surface);border-bottom:1px solid var(--line);border-radius:12px 12px 0 0}
+.toolbar [role=tab]{border:0;border-bottom:3px solid transparent;border-radius:0;background:none;padding:9px 12px 10px;font-weight:600;color:var(--muted)}
+.toolbar [role=tab]:hover{color:var(--ink)}
+.toolbar [role=tab][aria-selected=true]{color:var(--ink);border-bottom-color:var(--accent)}
+.toolbar .spacer{flex:1}
+.toolbar .hint{font-size:.8rem;color:var(--muted);margin-right:4px}
+#copyBtn{margin-bottom:8px;padding:9px 18px;font-size:.95rem;min-width:132px}
+#copyBtn.copied{background:var(--ok);border-color:var(--ok);color:var(--surface)}
+.tabpanel[hidden]{display:none}
+#panelPrev{background:#FFFFFF;color:#222222;border-radius:0 0 12px 12px;padding:26px 30px 34px;min-height:600px}
+#panelCode{padding:14px}
+#code{width:100%;min-height:640px;border:1px solid var(--line);border-radius:8px;background:var(--sunken);color:var(--ink);font-family:var(--mono);font-size:.82rem;line-height:1.55;padding:12px;resize:vertical;white-space:pre;overflow:auto;tab-size:2}
+.codehint{font-size:.83rem;color:var(--muted);margin:0 0 8px}
+
+/* 미리보기: 게시판처럼 흰 바탕 */
+#preview{max-width:800px;margin:0 auto;line-height:1.75;overflow-wrap:anywhere;color:#222222}
+#preview h2{font-size:1.35rem;margin:0 0 12px;line-height:1.4}
+#preview h3{font-size:1.1rem;margin:22px 0 8px}
+#preview p{margin:8px 0}
+#preview ul{margin:6px 0;padding-left:1.4em}
+#preview li{margin:3px 0}
+#preview .tableScroll{overflow-x:auto;margin:12px 0;border-radius:4px}
+#preview table{border-collapse:collapse;min-width:100%;font-size:.92rem}
+#preview caption{text-align:left;font-weight:600;padding-bottom:6px}
+#preview th,#preview td{border:1px solid #D5DCE3;padding:6px 9px;vertical-align:middle}
+#preview th{background:#F2F4F6;font-weight:600}
+#preview .mark{display:flex;gap:8px;align-items:center;margin:12px 0;padding:10px 13px;border:1.5px dashed #D29A2A;background:#FFF4DA;color:#6B4300;border-radius:8px;font-size:.86rem;line-height:1.5}
+#preview .mark::before{content:"";flex:none;width:18px;height:14px;border:2px solid #B07A12;border-radius:3px;background:linear-gradient(135deg,transparent 55%,#B07A12 55% 62%,transparent 62%)}
+#preview .mark.meta{border-style:solid;border-color:#E3E7EB;background:#F7F8FA;color:#6B7785}
+#preview .mark.meta::before{display:none}
+.flash{animation:flash 1.6s ease-out}
+@keyframes flash{0%,30%{box-shadow:0 0 0 4px #D29A2A}100%{box-shadow:0 0 0 0 transparent}}
+.placeholder{display:grid;place-items:center;gap:6px;min-height:520px;text-align:center;color:#6B7785}
+.placeholder b{display:block;color:#222222;font-size:1.05rem}
+
+/* 알림 */
+#toast{position:fixed;left:50%;bottom:26px;transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#17222D;color:#FFFFFF;padding:12px 18px;border-radius:10px;font-size:.92rem;box-shadow:0 8px 24px rgba(0,0,0,.25);transition:opacity .2s,transform .2s;max-width:calc(100vw - 32px);z-index:20}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#toast b{color:#9CC8FF}
+
+@media (max-width:1020px){
+  .grid{grid-template-columns:1fr}
+  .side{position:static;max-height:none;overflow:visible}
+  .top{grid-template-columns:1fr;gap:14px}
+}
+@media (max-width:760px){
+  .steps{grid-template-columns:1fr 1fr}
+  .steps li:nth-child(2){border-right:0}
+  .steps li:nth-child(-n+2){border-bottom:1px solid var(--line)}
+  #panelPrev{padding:18px 16px}
+  .toolbar .hint{display:none}
+}
+@media (max-width:460px){
+  .steps{grid-template-columns:1fr}
+  .steps li{border-right:0;border-bottom:1px solid var(--line)}
+  .looks{grid-template-columns:1fr}
+}
+@media (prefers-reduced-motion: reduce){
+  *{transition:none!important;animation:none!important}
+  html{scroll-behavior:auto}
+}
+</style>
+</head>
+<body>
+<a class="skip" href="#result">결과로 건너뛰기</a>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>보도자료 HTML 정리기</h1>
+      <p>한글(HWP)에서 복사한 보도자료의 글꼴·크기·여백 서식을 걷어내고, 스크린리더와 전자점자가 읽기 좋은 게시판용 HTML로 바꿉니다. 글자 내용은 바꾸지 않습니다.</p>
+    </div>
+    <aside class="note" aria-labelledby="noteTitle">
+      <h2 id="noteTitle">알아두기</h2>
+      <ul>
+        <li><b>이미지는 직접 넣어야 합니다.</b> 노란 표시 위치에 게시판 에디터로 이미지를 넣고 대체텍스트(사진 설명)를 꼭 입력하세요.</li>
+        <li><b>목록 단계를 확인하세요.</b> 기호가 처음 나온 순서<span style="white-space:nowrap">(보통 □ → ○ → - → ·)</span>로 단계를 정하므로 미리보기에서 맞는지 봐주세요.</li>
+        <li><b>내용은 외부로 나가지 않습니다.</b> 붙여넣은 내용은 이 브라우저 안에서만 처리되고 저장·전송되지 않습니다.</li>
+      </ul>
+    </aside>
+  </header>
+
+  <ol class="steps" id="steps" aria-label="작업 순서">
+    <li class="current"><span class="dot">1</span><span>한글에서 <kbd>Ctrl</kbd>+<kbd>A</kbd>, <kbd>Ctrl</kbd>+<kbd>C</kbd></span></li>
+    <li><span class="dot">2</span><span>이 화면에서 <kbd>Ctrl</kbd>+<kbd>V</kbd></span></li>
+    <li><span class="dot">3</span><span>확인할 점 점검 후 코드 복사</span></li>
+    <li><span class="dot">4</span><span>게시판 HTML(소스) 모드에 붙여넣기</span></li>
+  </ol>
+
+  <div class="grid">
+    <div class="side">
+      <section class="panel" aria-labelledby="pasteTitle">
+        <h2 id="pasteTitle">문서</h2>
+        <div id="zoneWrap">
+          <div id="pasteZone" contenteditable="true" tabindex="0" role="textbox" aria-label="한글에서 복사한 보도자료를 붙여넣는 칸. Ctrl+V를 누르세요." spellcheck="false">
+            <div class="ladder" aria-hidden="true" contenteditable="false"><span>□ 첫째 단계</span><span>&nbsp;&nbsp;○ 둘째 단계</span><span>&nbsp;&nbsp;&nbsp;&nbsp;- 셋째 단계</span></div>
+            <div class="big" contenteditable="false">여기를 누르고 <kbd>Ctrl</kbd>+<kbd>V</kbd></div>
+            <div class="sub" contenteditable="false">한글에서 복사한 보도자료를 붙여넣으세요</div>
+          </div>
+          <div class="zoneFoot"><button type="button" class="link" id="sampleBtn">예시 문서로 먼저 살펴보기</button></div>
+        </div>
+        <div class="doc" id="docInfo" hidden>
+          <p class="label">붙여넣은 문서</p>
+          <p class="title" id="docTitle"></p>
+          <ul class="chips" id="docChips"></ul>
+          <div class="actions">
+            <button type="button" class="primary small" id="againBtn">다른 문서 붙여넣기</button>
+            <button type="button" class="small" id="resetBtn">지우기</button>
+          </div>
+          <p class="tip">다른 문서는 이 화면에서 바로 <kbd>Ctrl</kbd>+<kbd>V</kbd>를 눌러도 바뀝니다.</p>
+        </div>
+        <p id="status" role="status" aria-live="polite"></p>
+      </section>
+
+      <section class="panel" aria-labelledby="checkTitle">
+        <h2 id="checkTitle">확인할 점 <span class="count" id="checkCount" hidden></span></h2>
+        <div class="pad">
+          <p class="empty" id="checksEmpty">문서를 붙여넣으면 여기에 표시됩니다.</p>
+          <ul id="checks"></ul>
+          <div class="after" id="afterBox" hidden>
+            <h3>게시판에 올린 뒤 <span id="afterProgress"></span></h3>
+            <div id="afterList"></div>
+          </div>
+        </div>
+      </section>
+
+      <section class="panel" aria-labelledby="lookTitle">
+        <h2 id="lookTitle">게시판 모양</h2>
+        <div class="pad">
+          <fieldset class="looks">
+            <legend class="sr">게시판에 올라갈 모양</legend>
+            <label class="look"><input type="radio" name="look" value="full" checked><span><i class="swatch sw-full"></i>기본 꾸밈<small>색·상자 포함</small></span></label>
+            <label class="look"><input type="radio" name="look" value="border"><span><i class="swatch sw-border"></i>표 선만<small>꾸밈 최소</small></span></label>
+            <label class="look"><input type="radio" name="look" value="none"><span><i class="swatch sw-none"></i>꾸밈 없음<small>사이트 스타일</small></span></label>
+          </fieldset>
+          <details class="more">
+            <summary>세부 설정 (결과가 이상할 때만)</summary>
+            <fieldset>
+              <legend class="sr">변환 방식</legend>
+              <label class="opt"><input type="checkbox" id="optTitle1" checked><span>첫 문단을 보도자료 제목으로 지정</span></label>
+              <label class="opt"><input type="checkbox" id="optHeader" checked><span>문서 맨 앞의 표(보도일시·담당 등)를 목록으로 풀기</span></label>
+              <label class="opt"><input type="checkbox" id="optBullets" checked><span>글머리 기호(□ ○ - ·)를 단계별 목록으로 바꾸기</span></label>
+              <label class="opt"><input type="checkbox" id="optThRow" checked><span>표의 맨 위 행을 머리글로 지정</span></label>
+              <label class="opt"><input type="checkbox" id="optThCol" checked><span>표의 첫 번째 열을 행 제목으로 지정</span></label>
+              <label class="opt"><input type="checkbox" id="optBoldHead"><span>굵고 짧은 문단을 소제목으로 지정</span></label>
+            </fieldset>
+            <button type="button" id="defaultsBtn" class="small">기본값으로 되돌리기</button>
+          </details>
+        </div>
+      </section>
+    </div>
+
+    <section class="panel result" id="result" aria-label="변환 결과">
+      <div class="toolbar">
+        <div role="tablist" aria-label="결과 보기 방식" style="display:flex">
+          <button type="button" role="tab" id="tabPrev" aria-selected="true" aria-controls="panelPrev">미리보기</button>
+          <button type="button" role="tab" id="tabCode" aria-selected="false" aria-controls="panelCode" tabindex="-1">HTML 코드</button>
+        </div>
+        <span class="spacer"></span>
+        <span class="hint" id="copyHint"></span>
+        <button type="button" class="primary" id="copyBtn" disabled>코드 복사</button>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="panelPrev" aria-labelledby="tabPrev">
+        <div id="preview"><div class="placeholder"><div><b>아직 붙여넣은 문서가 없습니다</b>한글에서 복사한 뒤 이 화면에서 Ctrl+V를 누르세요.</div></div></div>
+      </div>
+      <div class="tabpanel" role="tabpanel" id="panelCode" aria-labelledby="tabCode" hidden>
+        <p class="codehint">여기서 직접 고치면 미리보기에도 반영됩니다. &lt;!-- --&gt; 로 된 안내 문구는 게시판 화면에 보이지 않습니다.</p>
+        <textarea id="code" spellcheck="false" aria-label="변환된 HTML 코드"></textarea>
+      </div>
+    </section>
+  </div>
+</div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- 기본 도구 ---------- */
+const $ = id => document.getElementById(id);
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+/* 게시판 결과물 꾸밈: 사이트 스타일과 부딪히지 않도록 태그마다 직접 넣음 */
+const AC = "#1D4E89";          // 강조 색(짙은 남색, 흰 바탕 대비 8:1 이상)
+const LINE = "#C5CED8", HEAD_BG = "#EEF3F9", INK = "#222222", SUB = "#555555";
+const STYLE_SETS = {
+  full: {
+    badge:`display:inline-block;margin:0 0 8px;padding:3px 12px;background-color:${AC};color:#ffffff;font-size:13px;font-weight:bold;border-radius:3px;letter-spacing:1px;`,
+    slogan:`margin:0 0 6px;color:${SUB};font-size:13px;`,
+    h2:`margin:4px 0 16px;padding:0 0 14px;border-bottom:2px solid ${AC};color:${INK};font-size:24px;font-weight:bold;line-height:1.45;`,
+    box:`margin:0 0 18px;padding:14px 18px;background-color:#F4F7FB;border-left:4px solid ${AC};`,
+    boxP:`margin:4px 0;color:${INK};font-size:16px;font-weight:bold;line-height:1.6;`,
+    meta:`list-style:none;margin:0 0 24px;padding:10px 0;border-top:1px solid ${LINE};border-bottom:1px solid ${LINE};`,
+    metaLi:`margin:3px 0;color:${SUB};font-size:14px;line-height:1.6;`,
+    h3:`margin:32px 0 12px;padding:2px 0 2px 12px;border-left:4px solid ${AC};color:${INK};font-size:19px;font-weight:bold;line-height:1.45;`,
+    p:`margin:10px 0;color:${INK};font-size:16px;line-height:1.85;`,
+    ul:`margin:12px 0;padding-left:22px;`,
+    li:`margin:0 0 14px;color:${INK};font-size:16px;line-height:1.85;`,
+    ul2:`margin:6px 0 0;padding-left:20px;`,
+    li2:`margin:4px 0;font-size:15px;line-height:1.75;`,
+    table:`border-collapse:collapse;width:100%;margin:8px 0 28px;border-top:2px solid ${AC};font-size:14px;line-height:1.6;`,
+    caption:`caption-side:top;text-align:left;padding:0 0 8px;color:${INK};font-size:15px;font-weight:bold;`,
+    th:`border:1px solid ${LINE};padding:8px 10px;background-color:${HEAD_BG};color:${INK};font-weight:bold;text-align:center;vertical-align:middle;`,
+    td:`border:1px solid ${LINE};padding:8px 10px;color:${INK};vertical-align:middle;`,
+    tdNum:`border:1px solid ${LINE};padding:8px 10px;color:${INK};text-align:center;vertical-align:middle;`,
+    note:`margin:0 0 28px;color:${SUB};font-size:13px;line-height:1.6;`,
+    photo:`margin:4px 0 24px;color:${SUB};font-size:14px;line-height:1.6;text-align:center;`,
+    tableAttr:' border="1"'
+  },
+  border: {
+    table:"border-collapse:collapse;width:100%;margin:10px 0;",
+    caption:"font-weight:bold;padding:4px 0;",
+    th:"border:1px solid #999999;padding:5px 8px;background-color:#f2f2f2;",
+    td:"border:1px solid #999999;padding:5px 8px;",
+    tdNum:"border:1px solid #999999;padding:5px 8px;",
+    tableAttr:' border="1"'
+  },
+  none: {}
+};
+let ST = STYLE_SETS.full;
+const sa = k => ST[k] ? ` style="${ST[k]}"` : "";
+const RE_NUMCELL = /^([△▲▽▼+\-]?\s*[\d,]+(\.\d+)?\s*(%|개|건|명|원|억|만|억 원|백만원)?|-|–)$/;
+/* 한글 기호 글꼴(Wingdings 등)의 사용자 정의 영역 글자, 폭 없는 공백, 제어 문자: 게시판 저장 시 오류 원인 */
+const RE_JUNK = /[\uE000-\uF8FF\u200B-\u200D\u2060\uFEFF\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+const SIZE_WARN = 60 * 1024;
+const WIDE_COLS = 10; // 이보다 칸이 많으면 넓은 표로 처리
+const safeComment = s => s.replace(/-{2,}/g,"-").replace(/>/g,"〉");
+const BLOCK = new Set("p div h1 h2 h3 h4 h5 h6 li ul ol dl dt dd table thead tbody tfoot tr td th blockquote section article center pre body header footer main nav form fieldset address figure figcaption hr".split(" "));
+const SKIP = new Set(["style","script","xml","meta","link","title","head","o:p","colgroup","col"]);
+
+function fixSpaced(t){
+  // "보 도 자 료", "담    당" → "보도자료", "담당"
+  return /^[가-힣](\s+[가-힣]){1,6}$/.test(t) ? t.replace(/\s+/g,"") : t;
+}
+function isBoldEl(el){
+  const tag = el.tagName.toLowerCase();
+  if (tag === "b" || tag === "strong") return true;
+  const fw = (el.style && el.style.fontWeight) || "";
+  return fw === "bold" || fw === "bolder" || parseInt(fw,10) >= 600;
+}
+
+/* 요소 안의 글자를 [굵기 정보가 있는 조각]으로 모음 */
+function segments(node, bold, out){
+  for (const c of node.childNodes){
+    if (c.nodeType === 3){ out.push({t:c.nodeValue, b:bold}); continue; }
+    if (c.nodeType !== 1) continue;
+    const tag = c.tagName.toLowerCase();
+    if (SKIP.has(tag)) continue;
+    if (tag === "br"){ out.push({t:"\n", b:false}); continue; }
+    if (tag === "img" || tag === "svg" || tag === "picture" || tag === "canvas" || tag === "v:imagedata"){ out.push({img:true}); continue; }
+    segments(c, bold || isBoldEl(c), out);
+  }
+  return out;
+}
+function cleanSegs(segs){
+  const out = [];
+  for (const s of segs){
+    if (s.img){ out.push(s); continue; }
+    let t = s.t.replace(RE_JUNK,"").replace(/[\u00a0\u3000\u2002\u2003\u2009\t\r]/g," ").replace(/ *\n */g,"\n").replace(/ {2,}/g," ");
+    if (!t) continue;
+    const last = out[out.length-1];
+    if (last && !last.img && last.b === s.b) last.t += t; else out.push({t, b:s.b});
+  }
+  // 앞뒤 공백 정리
+  while (out.length && !out[0].img && !(out[0].t = out[0].t.replace(/^[\s]+/,""))) out.shift();
+  while (out.length && !out[out.length-1].img && !(out[out.length-1].t = out[out.length-1].t.replace(/[\s]+$/,""))) out.pop();
+  // 같은 굵기 조각 사이의 공백이 굵은 조각 쪽에 붙지 않게 조정
+  return out;
+}
+const segText = segs => segs.filter(s=>!s.img).map(s=>s.t).join("");
+function segHtml(segs, allowBold){
+  let h = "";
+  for (const s of segs){
+    if (s.img) continue;
+    let t = esc(s.t).replace(/\n+/g,"<br>");
+    if (allowBold && s.b && s.t.trim()){
+      const lead = t.match(/^\s*/)[0], trail = t.match(/\s*$/)[0];
+      t = lead + "<strong>" + t.trim() + "</strong>" + trail;
+    }
+    h += t;
+  }
+  return h.replace(/<\/strong>(\s*)<strong>/g,"$1").replace(/^(<br>)+|(<br>)+$/g,"");
+}
+function dropChars(segs, n){
+  const out = segs.map(s=>({...s}));
+  let i = 0;
+  while (n > 0 && i < out.length){
+    if (out[i].img){ i++; continue; }
+    const take = Math.min(n, out[i].t.length);
+    out[i].t = out[i].t.slice(take); n -= take;
+    if (!out[i].t) out.splice(i,1); else i++;
+  }
+  if (out.length && !out[0].img) out[0].t = out[0].t.replace(/^\s+/,"");
+  return out.filter(s => s.img || s.t);
+}
+
+/* 문서를 문단·표·이미지 순서 목록으로 펼침 */
+function hasBlockChild(el){
+  for (const c of el.children) if (BLOCK.has(c.tagName.toLowerCase())) return true;
+  return false;
+}
+function marginLeft(el){
+  const v = el.style ? el.style.marginLeft || el.style.paddingLeft : "";
+  return parseFloat(v) || 0;
+}
+function pushPara(items, segs, indent){
+  // 문단 안의 이미지를 따로 떼어 순서대로 넣음
+  let buf = [];
+  const flush = () => {
+    const raw = buf.filter(x=>!x.img).map(x=>x.t).join("");
+    const lead = (raw.match(/^[\s\u00a0\u3000]*/) || [""])[0].length;
+    const c = cleanSegs(buf);
+    if (segText(c).trim()) items.push({type:"p", segs:c, indent:(indent || 0) > 0 ? indent : lead * 5});
+    buf = [];
+  };
+  for (const s of segs){
+    if (s.img){ flush(); items.push({type:"img"}); } else buf.push(s);
+  }
+  flush();
+}
+function collect(el, items){
+  const tag = el.tagName ? el.tagName.toLowerCase() : "";
+  if (tag === "table"){ items.push({type:"table", el}); return items; }
+  if (SKIP.has(tag)) return items;
+  if (tag === "img"){ items.push({type:"img"}); return items; }
+  if (el === el.ownerDocument.body || hasBlockChild(el)){
+    let inline = [];
+    const flushInline = () => { if (inline.length){ pushPara(items, inline); inline = []; } };
+    for (const c of el.childNodes){
+      if (c.nodeType === 3){ inline.push({t:c.nodeValue, b:false}); continue; }
+      if (c.nodeType !== 1) continue;
+      const ct = c.tagName.toLowerCase();
+      if (BLOCK.has(ct) || ct === "img"){ flushInline(); collect(c, items); }
+      else if (!SKIP.has(ct)) { segments({childNodes:[c]}, false, inline); }
+    }
+    flushInline();
+    return items;
+  }
+  pushPara(items, segments(el, isBoldEl(el), []), marginLeft(el));
+  return items;
+}
+
+/* 칸이 하나뿐인 배치용 표는 풀어서 문단으로 */
+function expand(items){
+  const out = [];
+  for (const it of items){
+    if (it.type === "table"){
+      const cells = it.el.querySelectorAll("td,th");
+      const nested = Array.from(cells).filter(c => c.closest("table") === it.el);
+      if (nested.length <= 1){
+        const inner = [];
+        if (nested[0]) collect(nested[0], inner);
+        out.push(...expand(inner));
+        continue;
+      }
+    }
+    out.push(it);
+  }
+  return out;
+}
+
+/* ---------- 변환 ---------- */
+function bulletOf(t){
+  const m = t.match(/^([□■◻◼▢▣○●◦◎◇◆❍∙·•▪▫‣➢➤▶▷►✓✔])(\s*)/);
+  if (m){
+    if (t.charAt(1) === m[1]) return null; // "○○○ 의원" 같은 가림 표기
+    if (!m[2] && /[\d]/.test(t.charAt(1))) return null;
+    return {ch:m[1], len:m[0].length};
+  }
+  const d = t.match(/^([-–−])\s+/);
+  if (d) return {ch:"-", len:d[0].length};
+  return null;
+}
+const RE_PAGE = /^[-–−]\s*\d{1,3}\s*[-–−]$/;
+const RE_CAPTION = /^[<〈《【\[＜(]?\s*(표|그림)\s*\d/;
+const RE_ATTACH = /^[\[［【<〈]?\s*(붙임|첨부|별첨|참고)\s*\d*\s*[\]］】>〉]/;
+const RE_UNIT = /^[(（]?\s*단위\s*[:：]/;
+const RE_NUMHEAD = /^(\d{1,2}|[IVX]{1,4}|[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ])\s*[.)]\s*\S/;
+const RE_BRACKETHEAD = /^[<〈《【\[＜][^>〉》】\]＞]{1,30}[>〉》】\]＞]$/;
+
+function cellInner(cell, checks, tn){
+  const sub = expandCell(collect(cell, []));
+  const parts = [];
+  for (const it of sub){
+    if (it.type === "img"){ parts.push("<!-- 표 안의 이미지: 게시판에서 확인 -->"); checks.push({w:true, t:`표 ${tn} 안에 이미지가 있습니다. 게시판에서 직접 넣어야 합니다.`}); continue; }
+    if (it.type === "p"){
+      const txt = segText(it.segs);
+      parts.push(txt.indexOf("\n") < 0 && fixSpaced(txt) !== txt ? esc(fixSpaced(txt)) : segHtml(it.segs, true));
+    }
+  }
+  return parts.join("<br>");
+}
+function expandCell(items){
+  const out = [];
+  for (const it of items){
+    if (it.type === "table"){ // 표 안의 표는 글자만
+      out.push({type:"p", segs:cleanSegs(segments(it.el,false,[]))});
+    } else out.push(it);
+  }
+  return out;
+}
+
+function cellPlain(cell){
+  return segText(cleanSegs(segments(cell,false,[]))).replace(/\n+/g," ").trim();
+}
+/* 표 맨 위의 "(단위: ...)", "표 1" 같은 한 칸짜리 줄을 표 밖으로 꺼냄 */
+function splitTopRows(el){
+  const rows = Array.from(el.rows).filter(r => r.closest("table") === el);
+  const pulled = {title:"", unit:""};
+  while (rows.length > 2 && rows[0].cells.length === 1){
+    const t = cellPlain(rows[0].cells[0]);
+    if (RE_UNIT.test(t)) pulled.unit = t;
+    else if (RE_CAPTION.test(t) && !pulled.title) pulled.title = t;
+    else if (!t) {}
+    else break;
+    rows.shift();
+  }
+  return {rows, pulled};
+}
+function renderTable(rows, n, caption, opt, checks){
+  const occ = []; const info = [];
+  rows.forEach((row, r) => {
+    let c = 0;
+    for (const cell of row.cells){
+      while (occ[r] && occ[r][c]) c++;
+      const cs = Math.max(1, cell.colSpan || 1), rs = Math.max(1, Math.min(cell.rowSpan || 1, rows.length - r));
+      for (let i = 0; i < rs; i++){ occ[r+i] = occ[r+i] || []; for (let j = 0; j < cs; j++) occ[r+i][c+j] = true; }
+      info.push({r, c, cs, rs, cell});
+      c += cs;
+    }
+  });
+  const widths = occ.map(a => a ? a.filter(Boolean).length : 0);
+  if (new Set(widths).size > 1) checks.push({w:true, t:`표 ${n}: 행마다 칸 수가 달라 병합이 어긋났을 수 있습니다. 원문과 비교하세요.`});
+
+  let headRows = 0;
+  if (opt.thRow && rows.length > 1){
+    headRows = Math.max(...info.filter(x => x.r === 0).map(x => x.rs), 1);
+    headRows = Math.min(headRows, rows.length - 1);
+  }
+  const W = Math.max(...widths, 0);
+  // 한 표를 그림: inCol(c)가 참인 열만 넣음
+  const emit = (cap, inCol) => {
+    const L = [`<table${ST.tableAttr || ""}${sa("table")}>`, `  <caption${sa("caption")}>${esc(cap)}</caption>`];
+    let section = "";
+    rows.forEach((row, r) => {
+      const want = r < headRows ? "thead" : "tbody";
+      if (want !== section){
+        if (section) L.push(`  </${section}>`);
+        L.push(`  <${want}>`); section = want;
+      }
+      L.push("    <tr>");
+      for (const x of info.filter(i => i.r === r && inCol(i.c))){
+        let tag = "td", scope = "";
+        if (r < headRows){ tag = "th"; scope = "col"; }
+        else if (opt.thCol && x.c === 0 && widths[r] > 1){ tag = "th"; scope = "row"; }
+        let a = scope ? ` scope="${scope}"` : "";
+        if (x.cs > 1) a += ` colspan="${x.cs}"`;
+        if (x.rs > 1) a += ` rowspan="${x.rs}"`;
+        a += tag === "th" ? sa("th") : (RE_NUMCELL.test(cellPlain(x.cell)) ? sa("tdNum") : sa("td"));
+        L.push(`      <${tag}${a}>${cellInner(x.cell, checks, n)}</${tag}>`);
+      }
+      L.push("    </tr>");
+    });
+    if (section) L.push(`  </${section}>`);
+    L.push("</table>");
+    return L.join("\n");
+  };
+  const all = () => true;
+  if (W <= WIDE_COLS) return emit(caption, all);
+
+  // 나누기: 왼쪽 기준 열(연도·구분 등)은 매 표에 반복, 나머지는 맨 위 머리글 묶음 단위로 나눔
+  const split = splitPlan(info, headRows, W);
+  if (!split){
+    checks.push({w:true, t:`표 ${n}: 칸이 ${W}개라 나누려 했지만 구조가 복잡해 가로 스크롤 상자로 넣었습니다.`});
+    return wrapScroll(emit(caption, all), n, W, checks);
+  }
+  const {K, chunks} = split;
+  const out = chunks.map((ch, i) => {
+    const range = ch.label ? ` (${i+1}/${chunks.length}: ${ch.label})` : ` (${i+1}/${chunks.length})`;
+    return emit(caption + range, c => c < K || (c >= ch.from && c < ch.to));
+  });
+  checks.push({w:false, t:`표 ${n}: 칸이 ${W}개라 ${chunks.length}개의 표로 나눴습니다. 왼쪽 ${K}개 열은 표마다 반복됩니다.`});
+  return out.join("\n");
+}
+/* 넓은 표를 나눌 계획: 기준 열 수 K와 열 묶음 목록. 나눌 수 없으면 null */
+function splitPlan(info, headRows, W){
+  if (!headRows) return null;
+  const top = info.filter(x => x.r === 0).sort((a, b) => a.c - b.c);
+  // 기준 열: 맨 왼쪽부터 머리글 전체 높이를 차지하는 칸들
+  let K = 0;
+  for (const x of top){ if (x.c === K && x.rs >= headRows && K + x.cs <= 3) K += x.cs; else break; }
+  if (!K) K = 1;
+  // 묶음: 맨 위 머리글 칸 하나 = 묶음 하나
+  const groups = top.filter(x => x.c >= K).map(x => ({from:x.c, to:x.c + x.cs, label:cellPlain(x.cell)}));
+  if (!groups.length || groups[0].from !== K) return null;
+  // 어떤 칸도 묶음 경계를 넘거나, 기준 열과 데이터 열에 걸치면 안 됨
+  const bounds = new Set(groups.map(g => g.from).concat(W));
+  for (const x of info){
+    if (x.c < K && x.c + x.cs > K) return null;
+    for (let c = x.c + 1; c < x.c + x.cs; c++) if (c > K && bounds.has(c)) return null;
+  }
+  // 한 표의 데이터 열 수 한도
+  const max = Math.max(4, WIDE_COLS - K);
+  if (groups.some(g => g.to - g.from > max)) return null;
+  const total = W - K, count = Math.ceil(total / max), target = total / count;
+  const chunks = []; let cur = null;
+  for (const g of groups){
+    const size = g.to - g.from;
+    if (cur && (cur.to - cur.from + size > max || (cur.to - cur.from >= target && chunks.length < count - 1))){ chunks.push(cur); cur = null; }
+    if (!cur) cur = {from:g.from, to:g.to, names:[g.label]};
+    else { cur.to = g.to; cur.names.push(g.label); }
+  }
+  if (cur) chunks.push(cur);
+  if (chunks.length < 2) return null;
+  for (const ch of chunks){
+    const nm = ch.names.filter(Boolean);
+    ch.label = nm.length <= 1 ? (nm[0] || "") : `${nm[0]}~${nm[nm.length-1]}`;
+  }
+  return {K, chunks};
+}
+function wrapScroll(html, n, W, checks){
+  checks.push({w:false, t:`표 ${n}: 칸이 ${W}개라 가로 스크롤 상자로 감쌌습니다. 게시판이 상자의 스타일을 지우면 표가 화면 밖으로 넘칠 수 있으니 미리보기로 확인하세요.`});
+  const tbl = html.replace("width:100%;", "min-width:100%;white-space:nowrap;").replace("margin:8px 0 28px;", "margin:0;");
+  return `<div style="overflow-x:auto;max-width:100%;margin:8px 0 28px;">\n${tbl}\n</div>`;
+}
+
+function renderList(items){
+  const root = {kids:[]}; const path = [root];
+  for (const it of items){
+    const lvl = Math.min(it.level, path.length - 1);
+    path.length = lvl + 1;
+    const node = {html:it.html, kids:[]};
+    path[lvl].kids.push(node); path.push(node);
+  }
+  const out = [];
+  (function walk(nodes, d, depth){
+    const pad = "  ".repeat(d);
+    const u = depth ? sa("ul2") : sa("ul"), l = depth ? sa("li2") : sa("li");
+    out.push(`${pad}<ul${u}>`);
+    for (const n of nodes){
+      if (n.kids.length){
+        out.push(`${pad}  <li${l}>${n.html}`);
+        walk(n.kids, d + 2, depth + 1);
+        out.push(`${pad}  </li>`);
+      } else out.push(`${pad}  <li${l}>${n.html}</li>`);
+    }
+    out.push(pad + "</ul>");
+  })(root.kids, 0, 0);
+  return out.join("\n");
+}
+
+function hpBlock(t){
+  return {kind:"hp", text:t, html: t === "보도자료" ? `<p${sa("badge")}>${esc(t)}</p>` : `<p${sa("slogan")}>${esc(t)}</p>`};
+}
+function headerTable(el, blocks, checks, counters){
+  const metas = [];
+  const flushMeta = () => { if (metas.length){ blocks.push({kind:"meta", html:`<ul${sa("meta")}${ST.meta ? ' role="list"' : ""}>\n` + metas.map(m=>`  <li${sa("metaLi")}>${m}</li>`).join("\n") + "\n</ul>"}); metas.length = 0; } };
+  for (const row of Array.from(el.rows).filter(r => r.closest("table") === el)){
+    const texts = [];
+    for (const cell of row.cells){
+      if (cell.querySelector("img")){
+        counters.img++;
+        blocks.push({kind:"img", html:`<!-- 이미지 ${counters.img}: 문서 머리의 로고 등으로 보임. 필요 없으면 넣지 않아도 됨 -->`});
+        checks.push({w:false, t:`이미지 ${counters.img}: 문서 머리 부분의 로고 등으로 보입니다. 필요할 때만 게시판에서 넣으세요.`});
+      }
+      const t = fixSpaced(segText(cleanSegs(segments(cell,false,[]))).replace(/\n+/g," ").trim());
+      if (t) texts.push(t);
+    }
+    if (!texts.length) continue;
+    if (texts.length >= 2 && texts[0].replace(/[:：|]\s*$/,"").length <= 10){
+      const label = fixSpaced(texts[0].replace(/[:：|]\s*$/,"").trim());
+      metas.push(`<strong>${esc(label)}</strong>: ${esc(texts.slice(1).join(" "))}`);
+    } else {
+      flushMeta();
+      for (const t of texts) blocks.push(hpBlock(t));
+    }
+  }
+  flushMeta();
+}
+
+function convert(items, opt){
+  const blocks = []; const checks = [];
+  const counters = {img:0, table:0};
+  const order = [];
+  let list = [], titleDone = !opt.title, titleBlock = null, bulletSeen = false, sawContent = false;
+
+  const flushList = () => { if (list.length){ blocks.push({kind:"list", html:renderList(list)}); } list = []; };
+
+  for (const it of items){
+    if (it.type === "img"){
+      flushList();
+      counters.img++;
+      blocks.push({kind:"img", html:`<!-- 이미지 ${counters.img}: 게시판에서 이 위치에 이미지를 넣고 대체텍스트 입력 -->`});
+      checks.push({w:true, t:`이미지 ${counters.img}: 게시판 에디터로 직접 넣고 대체텍스트(사진 설명)를 입력하세요.`});
+      continue;
+    }
+    if (it.type === "table"){
+      flushList();
+      if (opt.header && !sawContent){ headerTable(it.el, blocks, checks, counters); continue; }
+      sawContent = true;
+      counters.table++;
+      const n = counters.table;
+      let unit = "", title = "";
+      const prev = () => blocks[blocks.length-1];
+      if (prev() && prev().kind === "p" && RE_UNIT.test(prev().text)){ unit = prev().text; blocks.pop(); }
+      if (prev() && prev().kind === "p" && RE_CAPTION.test(prev().text)){ title = prev().text; blocks.pop(); }
+      else if (prev() && prev().kind === "p" && RE_ATTACH.test(prev().text) && prev().text.length <= 80){
+        // 붙임 목록(붙임 제목이 연달아 나오는 경우)의 마지막 줄은 제목으로 쓰지 않음
+        const before = blocks[blocks.length-2];
+        if (!(before && before.kind === "p" && RE_ATTACH.test(before.text))){ title = prev().text; blocks.pop(); }
+      }
+      if (!unit && prev() && prev().kind === "p" && RE_UNIT.test(prev().text)){ unit = prev().text; blocks.pop(); }
+      const {rows, pulled} = splitTopRows(it.el);
+      if (!unit) unit = pulled.unit;
+      if (!title) title = pulled.title;
+      // "표 1"처럼 번호만 있는 제목이면 바로 앞 소제목을 제목으로 씀
+      const bare = !title || /^[<〈《【\[＜(]?\s*(표|그림)\s*[\d-]+\s*[>〉》】\]＞)]?$/.test(title);
+      const head = [...blocks].reverse().find(b => b.kind !== "img");
+      if (bare && head && head.kind === "h3") title = head.text;
+      let cap = title;
+      if (!cap){
+        cap = `표 ${n}`;
+        checks.push({w:true, t:`표 ${n}: 표 제목을 찾지 못해 "표 ${n}"으로 넣었습니다. 코드의 caption을 내용에 맞게 고치세요.`});
+      }
+      if (unit) cap += " " + unit;
+      blocks.push({kind:"table", html:renderTable(rows, n, cap, opt, checks)});
+      continue;
+    }
+
+    // 문단
+    let segs = it.segs;
+    let text = segText(segs).replace(/\n+/g," ").trim();
+    if (!text || RE_PAGE.test(text)) continue;
+    const allBold = segs.every(s => s.img || s.b || !s.t.trim());
+
+    if (!titleDone){
+      const plain = fixSpaced(text);
+      if (plain === "보도자료" || plain.length < 5){
+        blocks.push(hpBlock(plain)); continue;
+      }
+      titleDone = true;
+      if (!bulletOf(text)){
+        titleBlock = {kind:"h2", html:`<h2${sa("h2")}>${esc(text)}</h2>`};
+        sawContent = true;
+        continue;
+      }
+    }
+    sawContent = true;
+
+    // 제목 바로 아래 부제목: "- 내용 -"
+    if (titleBlock && !bulletSeen && /^[-–−]\s*\S.*\S\s*[-–−]$/.test(text)){
+      flushList();
+      const t = text.replace(/^[-–−]\s*/,"").replace(/\s*[-–−]$/,"");
+      blocks.push({kind:"sub", html:`<p${sa("p")}>${esc(t)}</p>`, text:t});
+      continue;
+    }
+
+    const b = opt.bullets ? bulletOf(text) : null;
+    if (b && list.length && list.endFlag){ flushList(); }
+    if (b){
+      bulletSeen = true;
+      let lvl = order.indexOf(b.ch);
+      if (lvl < 0){ order.push(b.ch); lvl = order.length - 1; }
+      list.push({level:lvl, indent:it.indent || 0, html:segHtml(dropChars(segs, leadingOffset(segs) + b.len), true)});
+      if (/[<〈＜]\s*끝\s*[>〉＞]\s*$|(^|\s)끝\s*\.?$/.test(text)) list.endFlag = true;
+      continue;
+    }
+    if (opt.bullets && /^※/.test(text) && list.length){
+      // 같은 들여쓰기의 앞 항목과 같은 단계로. 들여쓰기 정보가 없으면 둘째 단계(○)까지만
+      const ind = it.indent || 0;
+      let lvl = null;
+      if (ind > 0){
+        for (let k = list.length - 1; k >= 0; k--){
+          if (Math.abs((list[k].indent || 0) - ind) < 3){ lvl = list[k].level; break; }
+        }
+      }
+      if (lvl === null) lvl = Math.min(list[list.length-1].level, 1);
+      list.push({level:lvl, indent:ind, html:segHtml(segs, true)});
+      continue;
+    }
+    flushList();
+
+    const plain = fixSpaced(text);
+    if (text.length <= 40 && (RE_NUMHEAD.test(text) || RE_BRACKETHEAD.test(text) || (opt.boldHead && allBold && !/[.。]$/.test(text)))){
+      blocks.push({kind:"h3", html:`<h3${sa("h3")}>${esc(text)}</h3>`, text});
+      continue;
+    }
+    if (/^붙\s*임/.test(text)) checks.push({w:false, t:"붙임 파일은 게시판의 첨부파일 기능으로 따로 올리세요."});
+    const html = plain !== text ? esc(plain) : segHtml(segs, !allBold);
+    blocks.push({kind:"p", html:`<p${sa("p")}>${html}</p>`, text:plain});
+  }
+  flushList();
+  if (titleBlock){
+    const hps = blocks.filter(b => b.kind === "hp");
+    const others = blocks.filter(b => b.kind !== "hp");
+    // 제목 뒤, 본문 목록·소제목·표가 나오기 전의 짧은 문단 = 부제목
+    const subs = [];
+    for (const b of others){
+      if (b.kind === "img" || b.kind === "meta") continue;
+      if ((b.kind === "sub" || b.kind === "p") && b.text.length <= 120 && subs.length < 6){ subs.push(b); continue; }
+      break;
+    }
+    const rest = others.filter(b => !subs.includes(b));
+    blocks.length = 0;
+    blocks.push(...hps, titleBlock);
+    if (subs.length && ST.box){
+      blocks.push({kind:"box", html:`<div${sa("box")}>\n` + subs.map(b => `  <p${sa("boxP")}>${esc(b.text)}</p>`).join("\n") + "\n</div>"});
+    } else blocks.push(...subs);
+    blocks.push(...rest);
+  }
+  // 표 아래 출처·주석은 표에 붙여 작게, 이미지 바로 뒤 문장은 사진 설명으로
+  if (ST.note){
+    for (let i = 1; i < blocks.length; i++){
+      const b = blocks[i], prev = blocks[i-1];
+      if (b.kind !== "p") continue;
+      if (/^(자료|출처|주|※)\s*[:：)]?/.test(b.text) && (prev.kind === "table" || prev.kind === "note") && b.text.length <= 150){
+        if (prev.kind === "table"){ const k = prev.html.lastIndexOf("margin:8px 0 28px;"); if (k >= 0) prev.html = prev.html.slice(0, k) + "margin:8px 0 6px;" + prev.html.slice(k + 18); }
+        else prev.html = prev.html.replace("margin:0 0 28px;", "margin:0 0 2px;");
+        b.kind = "note"; b.html = `<p${sa("note")}>${esc(b.text)}</p>`;
+      } else if (prev.kind === "img" && !/^\s*<!-- 이미지 \d+: 문서 머리/.test(prev.html) && b.text.length <= 100){
+        b.kind = "photo"; b.html = `<p${sa("photo")}>${esc(b.text)}</p>`;
+      }
+    }
+  }
+  else if (opt.title) checks.push({w:false, t:"보도자료 제목을 찾지 못했습니다. 필요하면 첫 줄을 <h2>로 감싸세요."});
+
+  const body = blocks.map(b => b.html).join("\n");
+  const bytes = new TextEncoder().encode(body).length;
+  if (bytes > SIZE_WARN){
+    checks.push({w:true, t:`결과 코드가 약 ${Math.round(bytes/1024)}KB입니다. 게시판 대부분이 본문 길이를 64KB 안팎으로 제한해 글 등록이 실패할 수 있습니다. "꾸밈 없음"으로 바꾸거나, 큰 표는 첨부파일·이미지로 올리세요.`});
+  }
+  const warnCount = checks.filter(c => c.w).length;
+  const code = body +
+    `\n<!-- 검수 정보: 표 ${counters.table}개 / 이미지 ${counters.img}개 / 확인 필요 ${warnCount}건 / 게시 전 원문 대조 -->`;
+  // 중복 안내 제거
+  const seen = new Set();
+  const uniq = checks.filter(c => !seen.has(c.t) && seen.add(c.t));
+  return {code, checks:uniq, counters, paraCount:blocks.length};
+}
+function leadingOffset(segs){
+  // cleanSegs 이후 첫 조각은 앞 공백이 없으므로 0
+  return 0;
+}
+
+/* ---------- 입력 처리 ---------- */
+function itemsFromHtml(html){
+  const doc = new DOMParser().parseFromString(html, "text/html");
+  return expand(collect(doc.body, []));
+}
+function itemsFromText(text){
+  return text.split(/\r?\n/).map(l => ({type:"p", segs:cleanSegs([{t:l, b:false}])})).filter(i => segText(i.segs).trim());
+}
+
+
+/* ---------- 화면 동작 ---------- */
+let last = null;
+let lastRes = null;
+const zone = $("pasteZone");
+
+function options(){
+  return {
+    title:$("optTitle1").checked, header:$("optHeader").checked, bullets:$("optBullets").checked,
+    thRow:$("optThRow").checked, thCol:$("optThCol").checked, boldHead:$("optBoldHead").checked
+  };
+}
+function setSteps(n){ // n: 지금 해야 할 단계 번호
+  document.querySelectorAll("#steps li").forEach((li, i) => {
+    li.classList.toggle("done", i + 1 < n);
+    li.classList.toggle("current", i + 1 === n);
+    if (i + 1 === n) li.setAttribute("aria-current", "step"); else li.removeAttribute("aria-current");
+  });
+}
+function setStatus(msg, err){
+  const s = $("status"); s.textContent = msg; s.className = err ? "err" : "";
+}
+let toastTimer;
+function toast(html){
+  const t = $("toast"); t.innerHTML = html; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.classList.remove("show"), 3600);
+}
+
+function run(keepAfter){
+  if (!last) return;
+  const items = last.html ? itemsFromHtml(last.html) : itemsFromText(last.text);
+  if (!items.length){ setStatus("붙여넣은 내용에서 글자를 찾지 못했습니다. 한글에서 글자를 선택해 다시 복사하세요.", true); return; }
+  const look = (document.querySelector('input[name="look"]:checked') || {}).value || "full";
+  ST = STYLE_SETS[look] || STYLE_SETS.full;
+  const res = convert(items, options());
+  lastRes = res;
+  $("code").value = res.code;
+  showPreview(res.code);
+  showChecks(res, !last.html);
+  if (!keepAfter) buildAfter(res);
+  showDoc(res);
+  $("copyBtn").disabled = false;
+  $("copyHint").textContent = "";
+  setStatus("");
+}
+
+function showDoc(res){
+  const m = res.code.match(/<h2[^>]*>([\s\S]*?)<\/h2>/);
+  const tmp = document.createElement("div"); tmp.innerHTML = m ? m[1] : "";
+  $("docTitle").textContent = tmp.textContent || "(제목을 찾지 못함)";
+  const warn = res.checks.filter(c => c.w).length + (last.html ? 0 : 1);
+  const chips = [`표 ${res.counters.table}개`, `이미지 ${res.counters.img}개`];
+  $("docChips").innerHTML = chips.map(c => `<li>${c}</li>`).join("") +
+    (warn ? `<li class="warn">확인 ${warn}건</li>` : `<li class="good">확인할 점 없음</li>`);
+  $("zoneWrap").hidden = true;
+  $("docInfo").hidden = false;
+}
+
+function showPreview(code){
+  let imgSeq = 0, tblSeq = 0;
+  const withMarks = code
+    .replace(/<!--([\s\S]*?)-->/g, (m, t) => {
+      t = t.trim();
+      const im = t.match(/^이미지 (\d+)/);
+      if (im) return `<div class="mark" id="pv-img-${im[1]}">${esc(t.replace(/^이미지 (\d+):\s*/, "이미지 $1 넣을 자리 · "))}</div>`;
+      if (/^검수 정보/.test(t)) return `<div class="mark meta">${esc(t)}</div>`;
+      return `<div class="mark">${esc(t)}</div>`;
+    })
+    .replace(/<table\b/g, () => `<div class="tableScroll" id="pv-tbl-${++tblSeq}"><table`)
+    .replace(/<\/table>/g, "</table></div>");
+  const tpl = document.createElement("template");
+  tpl.innerHTML = withMarks;
+  tpl.content.querySelectorAll("script,style,iframe,object,embed,link,meta").forEach(n => n.remove());
+  tpl.content.querySelectorAll("*").forEach(n => {
+    for (const a of Array.from(n.attributes)) if (/^on/i.test(a.name) || /javascript:/i.test(a.value)) n.removeAttribute(a.name);
+  });
+  const box = $("preview"); box.innerHTML = ""; box.appendChild(tpl.content);
+}
+
+function jumpTo(id){
+  selectTab("prev", false);
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.scrollIntoView({block:"center"});
+  el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash");
+}
+function showChecks(res, plainOnly){
+  const ul = $("checks"); ul.innerHTML = "";
+  const all = res.checks.slice();
+  if (plainOnly) all.unshift({w:true, t:"서식 없이 글자만 붙여넣어졌습니다. 표가 있다면 한글에서 다시 복사하세요."});
+  all.sort((a, b) => (b.w ? 1 : 0) - (a.w ? 1 : 0));
+  for (const c of all){
+    const li = document.createElement("li");
+    if (!c.w) li.className = "info";
+    const span = document.createElement("span"); span.textContent = c.t; li.appendChild(span);
+    const im = c.t.match(/^이미지 (\d+)/), tb = c.t.match(/^표 (\d+)/);
+    const target = im ? `pv-img-${im[1]}` : tb ? `pv-tbl-${tb[1]}` : null;
+    if (target){
+      const b = document.createElement("button");
+      b.type = "button"; b.textContent = "위치 보기";
+      b.setAttribute("aria-label", (im ? `이미지 ${im[1]}` : `표 ${tb[1]}`) + " 위치를 미리보기에서 보기");
+      b.addEventListener("click", () => jumpTo(target));
+      li.appendChild(b);
+    }
+    ul.appendChild(li);
+  }
+  const warn = all.filter(c => c.w).length;
+  const cnt = $("checkCount");
+  cnt.hidden = false; cnt.textContent = warn; cnt.className = "count" + (warn ? "" : " zero");
+  cnt.setAttribute("aria-label", `꼭 확인할 점 ${warn}건`);
+  $("checksEmpty").hidden = all.length > 0;
+  if (!all.length){ $("checksEmpty").hidden = false; $("checksEmpty").textContent = "변환 과정에서 걸린 부분이 없습니다."; }
+}
+
+function buildAfter(res){
+  const items = ["코드를 게시판 에디터의 HTML(소스) 모드에 붙여넣었다"];
+  if (res.counters.img) items.push(`이미지 ${res.counters.img}개를 넣고 대체텍스트를 입력했다`);
+  if (/붙\s*임/.test(res.code)) items.push("붙임 파일을 첨부파일로 등록했다");
+  items.push("숫자·이름·날짜를 원문과 대조했다");
+  const box = $("afterList"); box.innerHTML = "";
+  items.forEach((t, i) => {
+    const l = document.createElement("label");
+    l.innerHTML = `<input type="checkbox" data-i="${i}"><span></span>`;
+    l.querySelector("span").textContent = t;
+    box.appendChild(l);
+  });
+  box.querySelectorAll("input").forEach(inp => inp.addEventListener("change", updateAfter));
+  $("afterBox").hidden = false;
+  updateAfter();
+}
+function updateAfter(){
+  const boxes = Array.from($("afterList").querySelectorAll("input"));
+  const done = boxes.filter(b => b.checked).length;
+  $("afterProgress").textContent = `${done}/${boxes.length} 완료`;
+  if (!lastRes) return;
+  if (boxes.length && done === boxes.length){ setSteps(5); toast("모두 끝났습니다. 수고하셨습니다."); }
+  else if (boxes[0] && boxes[0].checked) setSteps(4);
+  else if ($("copyBtn").dataset.copied) setSteps(4);
+  else setSteps(3);
+}
+
+function handlePaste(e){
+  const cd = e.clipboardData;
+  if (!cd) return;
+  e.preventDefault();
+  const html = cd.getData("text/html");
+  const text = cd.getData("text/plain");
+  if (!html && !text){
+    const hasFile = Array.from(cd.items || []).some(i => i.kind === "file");
+    setStatus(hasFile ? "그림으로 복사되었습니다. 한글에서 글자를 선택해 다시 복사하세요." : "붙여넣을 내용이 없습니다. 한글에서 먼저 복사하세요.", true);
+    return;
+  }
+  last = {html, text};
+  delete $("copyBtn").dataset.copied;
+  run();
+  if (!lastRes) return;
+  setSteps(3);
+  selectTab("prev", false);
+  $("result").scrollIntoView({block:"start"});
+  $("copyBtn").focus({preventScroll:true});
+  toast(`변환했습니다. <b>Enter</b>를 누르면 코드가 복사됩니다.`);
+}
+document.addEventListener("paste", e => {
+  if (e.target && e.target.closest && e.target.closest("textarea, input")) return;
+  handlePaste(e);
+});
+zone.addEventListener("beforeinput", e => { if (e.inputType !== "insertFromPaste") e.preventDefault(); });
+zone.addEventListener("keydown", e => { if (!(e.ctrlKey || e.metaKey) && e.key.length === 1) e.preventDefault(); });
+zone.addEventListener("drop", e => e.preventDefault());
+zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("hot"); });
+zone.addEventListener("dragleave", () => zone.classList.remove("hot"));
+
+["optTitle1","optHeader","optBullets","optThRow","optThCol","optBoldHead"].forEach(id => $(id).addEventListener("change", () => run(true)));
+document.querySelectorAll('input[name="look"]').forEach(r => r.addEventListener("change", () => run(true)));
+const DEFAULTS = {optTitle1:true, optHeader:true, optBullets:true, optThRow:true, optThCol:true, optBoldHead:false};
+$("defaultsBtn").addEventListener("click", () => {
+  for (const k in DEFAULTS) $(k).checked = DEFAULTS[k];
+  document.querySelector('input[name="look"][value="full"]').checked = true;
+  run(true);
+  toast("세부 설정을 기본값으로 되돌렸습니다.");
+});
+let codeTimer;
+$("code").addEventListener("input", () => {
+  clearTimeout(codeTimer);
+  codeTimer = setTimeout(() => showPreview($("code").value), 250);
+});
+
+function clearAll(){
+  last = null; lastRes = null; $("code").value = "";
+  $("preview").innerHTML = '<div class="placeholder"><div><b>아직 붙여넣은 문서가 없습니다</b>한글에서 복사한 뒤 이 화면에서 Ctrl+V를 누르세요.</div></div>';
+  $("checks").innerHTML = ""; $("checksEmpty").hidden = false; $("checksEmpty").textContent = "문서를 붙여넣으면 여기에 표시됩니다.";
+  $("checkCount").hidden = true; $("afterBox").hidden = true;
+  $("copyBtn").disabled = true; delete $("copyBtn").dataset.copied; $("copyHint").textContent = "";
+  $("docInfo").hidden = true; $("zoneWrap").hidden = false;
+  setSteps(1); setStatus("");
+}
+$("againBtn").addEventListener("click", () => {
+  $("docInfo").hidden = true; $("zoneWrap").hidden = false;
+  setSteps(2); zone.focus();
+  setStatus("새 문서를 복사한 뒤 Ctrl+V를 누르세요. 지금 결과는 새로 붙여넣을 때까지 유지됩니다.");
+});
+$("resetBtn").addEventListener("click", () => { clearAll(); zone.focus(); });
+zone.addEventListener("focus", () => { if (!last) setSteps(2); });
+zone.addEventListener("blur", () => {
+  if (!last) setSteps(1);
+  else if ($("zoneWrap").hidden === false){ $("zoneWrap").hidden = true; $("docInfo").hidden = false; setStatus(""); }
+});
+
+$("copyBtn").addEventListener("click", async () => {
+  const btn = $("copyBtn"); const val = $("code").value;
+  let ok = false;
+  try { await navigator.clipboard.writeText(val); ok = true; } catch(err) {}
+  if (!ok){
+    const panel = $("panelCode"), wasHidden = panel.hidden;
+    panel.hidden = false;
+    const ta = $("code"); ta.focus({preventScroll:true}); ta.select();
+    try { ok = document.execCommand("copy"); } catch(err) {}
+    if (wasHidden && ok) panel.hidden = true;
+    if (!ok){
+      selectTab("code", true);
+      toast("자동 복사가 막혀 있습니다. 코드가 선택된 상태이니 <b>Ctrl+C</b>를 누르세요.");
+      return;
+    }
+    btn.focus({preventScroll:true});
+  }
+  btn.dataset.copied = "1";
+  btn.classList.add("copied"); btn.textContent = "복사했습니다";
+  $("copyHint").textContent = "게시판 에디터의 HTML(소스) 모드에 붙여넣으세요";
+  setTimeout(() => { btn.classList.remove("copied"); btn.textContent = "다시 복사"; }, 2200);
+  updateAfter();
+  toast("코드를 복사했습니다. 게시판 에디터를 <b>HTML(소스) 모드</b>로 바꾼 뒤 붙여넣으세요.");
+});
+
+function selectTab(which, focusCode){
+  const prev = which === "prev";
+  $("tabPrev").setAttribute("aria-selected", prev); $("tabCode").setAttribute("aria-selected", !prev);
+  $("tabPrev").tabIndex = prev ? 0 : -1; $("tabCode").tabIndex = prev ? -1 : 0;
+  $("panelPrev").hidden = !prev; $("panelCode").hidden = prev;
+  if (!prev && focusCode){ const ta = $("code"); ta.focus(); ta.select(); }
+}
+$("tabPrev").addEventListener("click", () => selectTab("prev"));
+$("tabCode").addEventListener("click", () => selectTab("code", false));
+document.querySelector("[role=tablist]").addEventListener("keydown", e => {
+  if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+  const toCode = $("tabPrev").getAttribute("aria-selected") === "true";
+  selectTab(toCode ? "code" : "prev");
+  (toCode ? $("tabCode") : $("tabPrev")).focus();
+});
+
+const SAMPLE = `
+<table style="width:600px;border:1px solid #000">
+<tr><td colspan="2" style="text-align:center"><img src="logo.png"><p style="font-size:24pt;font-weight:bold">보 도 자 료</p></td></tr>
+<tr><td><p style="font-family:'휴먼명조'">배포일시</p></td><td><p style="font-family:'휴먼명조'">2026. 9. 1.(화) 배포 즉시 보도</p></td></tr>
+<tr><td><p>담&nbsp;&nbsp;&nbsp;&nbsp;당</p></td><td><p>○○○ 의원실 △△△ 비서관 (02-000-0000)</p></td></tr>
+</table>
+<p style="font-size:18pt;font-weight:bold;text-align:center">○○○ 의원, 「청년 주거 지원법」 개정안 대표발의</p>
+<p style="text-align:center">- 지원 대상 연령 확대 및 지원 기간 연장 -</p>
+<p style="margin-left:0pt">□ ○○○ 국회의원은 청년의 주거 부담을 줄이기 위한 「청년 주거 지원법」 일부개정법률안을 <span style="font-weight:bold">대표발의</span>했다고 31일 밝혔다.</p>
+<p>&nbsp;</p>
+<p>□ 개정안의 주요 내용은 다음과 같다.</p>
+<p style="margin-left:15pt">&nbsp;○ (지원 대상) 지원 대상 연령을 현행 만 34세에서 만 39세로 확대</p>
+<p style="margin-left:30pt">&nbsp;&nbsp;- 다만, 소득 기준은 현행과 같이 유지</p>
+<p style="margin-left:15pt">&nbsp;○ (지원 기간) 최대 지원 기간을 2년에서 4년으로 연장</p>
+<p style="margin-left:30pt">&nbsp;&nbsp;- 연장 시 소득 요건 재확인</p>
+<p style="margin-left:45pt">&nbsp;&nbsp;&nbsp;· 재확인은 매년 1회 실시</p>
+<p style="margin-left:15pt">※ 세부 기준은 대통령령으로 정함</p>
+<p>&nbsp;</p>
+<p style="font-weight:bold">&lt;표 1&gt; 연도별 청년 주거 지원 예산 현황</p>
+<p style="text-align:right">(단위: 억 원)</p>
+<table border="1">
+<tr><td rowspan="2" colspan="2"><p>구분</p></td><td colspan="2"><p>2025년</p></td><td colspan="2"><p>2026년</p></td></tr>
+<tr><td><p>예산</p></td><td><p>집행</p></td><td><p>예산</p></td><td><p>집행</p></td></tr>
+<tr><td rowspan="2"><p>월세 지원</p></td><td><p>수도권</p></td><td><p>1,200</p></td><td><p>1,150</p></td><td><p>1,500</p></td><td><p>-</p></td></tr>
+<tr><td><p>비수도권</p></td><td><p>800</p></td><td><p>760</p></td><td><p>900</p></td><td><p>-</p></td></tr>
+<tr><td colspan="2"><p>합계</p></td><td><p>2,000</p></td><td><p>1,910</p></td><td><p>2,400</p></td><td><p>-</p></td></tr>
+</table>
+<p style="font-size:9pt">자료: ○○부 제출 자료</p>
+<p style="text-align:center"><img src="photo.jpg" width="400"></p>
+<p style="text-align:center">○○○ 의원이 국회 소통관에서 개정안 발의 취지를 설명하고 있다.</p>
+<p style="text-align:center">- 1 -</p>
+<p>붙임  1. 개정안 신·구조문 대비표 1부.  끝.</p>`;
+$("sampleBtn").addEventListener("click", () => {
+  last = {html:SAMPLE, text:""}; delete $("copyBtn").dataset.copied;
+  run(); setSteps(3);
+  toast("예시 문서를 변환했습니다. 실제 문서는 한글에서 복사해 <b>Ctrl+V</b>로 넣으세요.");
+});
+setSteps(1);
+window.__converter = {itemsFromHtml, convert};
+})();
+</script>
+</body>
+</html>
