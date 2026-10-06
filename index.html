@@ -548,6 +548,11 @@ function expandCell(items){
   return out;
 }
 
+/* 정렬 판단용 글자: 칸 안의 문단을 공백으로 나눠 이어 붙임("1,311" + "(48.7)" → "1,311 (48.7)") */
+function cellLines(cell){
+  return expandCell(collect(cell, [])).filter(it => it.type === "p")
+    .map(it => segText(it.segs).replace(/\s+/g," ").trim()).filter(Boolean).join(" ");
+}
 function cellPlain(cell){
   return segText(cleanSegs(segments(cell,false,[]))).replace(/\n+/g," ").trim();
 }
@@ -565,7 +570,71 @@ function splitTopRows(el){
   }
   return {rows, pulled};
 }
+/* 칸 테두리 한쪽이 안 보이는지(한글에서 "선 없음"으로 지운 줄) */
+function edgeHidden(cell, side){
+  const st = (cell.getAttribute("style") || "").toLowerCase().replace(/\s+/g," ");
+  const m = st.match(new RegExp(`border-${side}\\s*:\\s*([^;]*)`));
+  const sty = cell.style[`border${side[0].toUpperCase()}${side.slice(1)}Style`];
+  if (sty === "none" || sty === "hidden") return true;
+  if (!m) return false;
+  const v = m[1].trim();
+  return /^(none|hidden|0)\b/.test(v) || /\bnone\b/.test(v) || /(^|\s)0(\.0+)?(pt|px|mm|cm)?(\s|$)/.test(v);
+}
+/* 한글에서 가운데 선을 지워 "한 칸에 두 줄"처럼 보이게 만든 두 행을 한 행으로 합침 */
+function mergeHiddenRows(rows){
+  for (let r = 0; r + 1 < rows.length; r++){
+    // 칸 배치 계산
+    const occ = [], info = [];
+    rows.forEach((row, ri) => {
+      let c = 0;
+      for (const cell of row.cells){
+        while (occ[ri] && occ[ri][c]) c++;
+        const cs = Math.max(1, cell.colSpan || 1), rs = Math.max(1, Math.min(cell.rowSpan || 1, rows.length - ri));
+        for (let i = 0; i < rs; i++){ occ[ri+i] = occ[ri+i] || []; for (let j = 0; j < cs; j++) occ[ri+i][c+j] = true; }
+        info.push({r:ri, c, cs, rs, cell});
+        c += cs;
+      }
+    });
+    const above = info.filter(x => x.r + x.rs - 1 === r);
+    const below = info.filter(x => x.r === r + 1);
+    const cross = info.filter(x => x.r <= r && x.r + x.rs - 1 > r);
+    // 왼쪽 제목 칸처럼 두 행에 걸친 칸이 있을 때만 합침(가로선 없는 표 전체가 한 행으로 뭉치는 것 방지)
+    if (!below.length || !above.length || !cross.length) continue;
+    // 아래 칸마다 같은 자리·같은 너비의 위 칸이 있어야 하고, 그 사이 선이 모두 지워져 있어야 함
+    let ok = below.every(b => b.rs === 1) && below.length === above.length;
+    if (ok){
+      for (const b of below){
+        const a = above.find(x => x.c === b.c && x.cs === b.cs);
+        if (!a || a.rs !== 1 || !(edgeHidden(b.cell, "top") || edgeHidden(a.cell, "bottom"))){ ok = false; break; }
+      }
+    }
+    if (!ok) continue;
+    for (const b of below){
+      const a = above.find(x => x.c === b.c && x.cs === b.cs);
+      if (b.cell.textContent.trim()){
+        const blocky = /^(P|DIV|TABLE|UL|OL|H\d)$/;
+        if (![...a.cell.children].some(e => blocky.test(e.tagName))){
+          const wrap = a.cell.ownerDocument.createElement("p");
+          while (a.cell.firstChild) wrap.appendChild(a.cell.firstChild);
+          a.cell.appendChild(wrap);
+        }
+        if (![...b.cell.children].some(e => blocky.test(e.tagName))){
+          const wrap = b.cell.ownerDocument.createElement("p");
+          while (b.cell.firstChild) wrap.appendChild(b.cell.firstChild);
+          b.cell.appendChild(wrap);
+        }
+        while (b.cell.firstChild) a.cell.appendChild(b.cell.firstChild);
+      }
+    }
+    for (const x of cross) x.cell.rowSpan = x.cell.rowSpan - 1;
+    rows[r + 1].remove();
+    rows.splice(r + 1, 1);
+    r--; // 같은 행을 다시 검사(세 줄 이상 합쳐진 경우)
+  }
+  return rows;
+}
 function renderTable(rows, n, caption, opt, checks){
+  rows = mergeHiddenRows(rows.slice());
   const occ = []; const info = [];
   rows.forEach((row, r) => {
     let c = 0;
@@ -592,13 +661,13 @@ function renderTable(rows, n, caption, opt, checks){
     const tally = {};
     for (const x of info){
       if (x.r < headRows || x.cs > 1) continue;
-      const t = cellPlain(x.cell); if (!t) continue;
+      const t = cellLines(x.cell); if (!t) continue;
       const k = tally[x.c] || (tally[x.c] = {n:0, all:0});
       k.all++; if (isNumCell(t)) k.n++;
     }
     for (const c in tally) numCol[c] = tally[c].n / tally[c].all >= 0.6;
   }
-  const centered = x => { const t = cellPlain(x.cell); return isNumCell(t) || (numCol[x.c] && t.length <= 20); };
+  const centered = x => { const t = cellLines(x.cell); return isNumCell(t) || (numCol[x.c] && t.length <= 20); };
   // 한 표를 그림: inCol(c)가 참인 열만 넣음
   const emit = (cap, inCol) => {
     const L = [`<table${ST.tableAttr || ""}${sa("table")}>`, `  <caption${sa("caption")}>${esc(cap)}</caption>`];
