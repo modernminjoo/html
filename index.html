@@ -357,6 +357,13 @@ const STYLE_SETS = {
 let ST = STYLE_SETS.full;
 const sa = k => ST[k] ? ` style="${ST[k]}"` : "";
 const RE_NUMCELL = /^([△▲▽▼+\-]?\s*[\d,]+(\.\d+)?\s*(%|개|건|명|원|억|만|억 원|백만원)?|-|–)$/;
+/* 숫자 칸: "283", "(43.9)", "1,311 (48.7)", "△12.5%p"처럼 숫자 덩어리로만 된 칸 */
+const RE_NUMTOKEN = /^[(（\[]?[△▲▽▼↑↓+\-]?[\d,]+(\.\d+)?(%p|%|개|건|명|원|억|만|배|회|곳|개소)?[)）\]]?$/;
+function isNumCell(t){
+  if (RE_NUMCELL.test(t)) return true;
+  const parts = t.replace(/억\s+원/g,"억원").split(/\s+/).filter(Boolean);
+  return parts.length > 0 && parts.length <= 4 && parts.every(x => RE_NUMTOKEN.test(x) || /^[-–—]$/.test(x));
+}
 /* 한글 기호 글꼴(Wingdings 등)의 사용자 정의 영역 글자, 폭 없는 공백, 제어 문자: 게시판 저장 시 오류 원인 */
 const RE_JUNK = /[\uE000-\uF8FF\u200B-\u200D\u2060\uFEFF\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 const SIZE_WARN = 60 * 1024;
@@ -579,6 +586,19 @@ function renderTable(rows, n, caption, opt, checks){
     headRows = Math.min(headRows, rows.length - 1);
   }
   const W = Math.max(...widths, 0);
+  // 열 정렬: 본문 칸 대부분이 숫자인 열은 짧은 칸을 모두 가운데 정렬(한글 원문과 같게)
+  const numCol = {};
+  {
+    const tally = {};
+    for (const x of info){
+      if (x.r < headRows || x.cs > 1) continue;
+      const t = cellPlain(x.cell); if (!t) continue;
+      const k = tally[x.c] || (tally[x.c] = {n:0, all:0});
+      k.all++; if (isNumCell(t)) k.n++;
+    }
+    for (const c in tally) numCol[c] = tally[c].n / tally[c].all >= 0.6;
+  }
+  const centered = x => { const t = cellPlain(x.cell); return isNumCell(t) || (numCol[x.c] && t.length <= 20); };
   // 한 표를 그림: inCol(c)가 참인 열만 넣음
   const emit = (cap, inCol) => {
     const L = [`<table${ST.tableAttr || ""}${sa("table")}>`, `  <caption${sa("caption")}>${esc(cap)}</caption>`];
@@ -597,7 +617,7 @@ function renderTable(rows, n, caption, opt, checks){
         let a = scope ? ` scope="${scope}"` : "";
         if (x.cs > 1) a += ` colspan="${x.cs}"`;
         if (x.rs > 1) a += ` rowspan="${x.rs}"`;
-        a += tag === "th" ? sa("th") : (RE_NUMCELL.test(cellPlain(x.cell)) ? sa("tdNum") : sa("td"));
+        a += tag === "th" ? sa("th") : (centered(x) ? sa("tdNum") : sa("td"));
         L.push(`      <${tag}${a}>${cellInner(x.cell, checks, n)}</${tag}>`);
       }
       L.push("    </tr>");
