@@ -511,6 +511,10 @@ function bulletOf(t){
 const RE_PAGE = /^[-–−]\s*\d{1,3}\s*[-–−]$/;
 const RE_CAPTION = /^[<〈《【\[＜(]?\s*(표|그림)\s*\d/;
 const RE_ATTACH = /^[\[［【<〈]?\s*(붙임|첨부|별첨|참고)\s*\d*\s*[\]］】>〉]/;
+/* 표 제목처럼 보이는 줄: 짧고, 문장으로 끝나지 않음 */
+function looksLikeTitle(t){
+  return t.length >= 4 && t.length <= 70 && !/(다|요|음|함|임)\s*[.。!?]?\s*["”’']?$|[.。!?:：]\s*$/.test(t) && !/^[※*]/.test(t);
+}
 const RE_UNIT = /^[(（]?\s*단위\s*[:：]/;
 const RE_NUMHEAD = /^(\d{1,2}|[IVX]{1,4}|[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ])\s*[.)]\s*\S/;
 const RE_BRACKETHEAD = /^[<〈《【\[＜][^>〉》】\]＞]{1,30}[>〉》】\]＞]$/;
@@ -735,6 +739,16 @@ function convert(items, opt){
       flushList();
       if (opt.header && !sawContent){ headerTable(it.el, blocks, checks, counters); continue; }
       sawContent = true;
+      {
+        const trs = [...it.el.querySelectorAll("tr")];
+        const cells = trs.length === 1 ? [...trs[0].children] : [];
+        const first = cells.length === 2 ? cells[0].textContent.replace(/\s+/g,"") : "";
+        if (/^[\[［【<〈]?(붙임|첨부|별첨|참고)\d*[\]］】>〉]?$/.test(first)){
+          const t = `${first} ${cells[1].textContent.replace(/\s+/g," ").trim()}`;
+          blocks.push({kind:"h3", html:`<h3${sa("h3")}>${esc(t)}</h3>`, text:t, box:true});
+          continue;
+        }
+      }
       counters.table++;
       const n = counters.table;
       let unit = "", title = "";
@@ -747,6 +761,9 @@ function convert(items, opt){
         if (!(before && before.kind === "p" && RE_ATTACH.test(before.text))){ title = prev().text; blocks.pop(); }
       }
       if (!unit && prev() && prev().kind === "p" && RE_UNIT.test(prev().text)){ unit = prev().text; blocks.pop(); }
+      if (!title && prev() && prev().kind === "p" && looksLikeTitle(prev().text)){ title = prev().text; blocks.pop(); }
+      // 표 바로 앞 소제목은 표 제목으로 옮겨 같은 글이 두 번 나오지 않게 함
+      if (!title && prev() && prev().kind === "h3" && !prev().box){ title = prev().text; blocks.pop(); }
       const {rows, pulled} = splitTopRows(it.el);
       if (!unit) unit = pulled.unit;
       if (!title) title = pulled.title;
