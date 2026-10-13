@@ -366,6 +366,14 @@ function isNumCell(t){
 }
 /* 한글 기호 글꼴(Wingdings 등)의 사용자 정의 영역 글자, 폭 없는 공백, 제어 문자: 게시판 저장 시 오류 원인 */
 const RE_JUNK = /[\uE000-\uF8FF\u200B-\u200D\u2060\uFEFF\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+/* 한글 전용 기호(사용자 정의 영역, 예: U+F02FB "󰋻")는 대부분 글머리표. 줄 맨 앞이면 "○ "로 바꾸고 나머지는 지움 */
+const RE_PUA_LEAD = /(^|\n|\s)[\uE000-\uF8FF\u{F0000}-\u{FFFFD}\u{100000}-\u{10FFFD}]+\s*(?=\S)/gu;
+const RE_PUA = /[\u{F0000}-\u{FFFFD}\u{100000}-\u{10FFFD}]/gu;
+/* 사용자 정의 영역 전체(기본 + 보충 A·B) */
+const RE_PUA_ALL = /[\uE000-\uF8FF\u{F0000}-\u{FFFFD}\u{100000}-\u{10FFFD}]/gu;
+const PUA_SEEN = new Set(); // 이번 문서에서 발견한 사용자 정의 영역 글자
+/* 4바이트 글자(이모지 등): 게시판 DB가 utf8(3바이트)이면 저장 오류 */
+const RE_ASTRAL = /[\u{10000}-\u{10FFFF}]/gu;
 const SIZE_WARN = 60 * 1024;
 const WIDE_COLS = 10; // 이보다 칸이 많으면 넓은 표로 처리
 const safeComment = s => s.replace(/-{2,}/g,"-").replace(/>/g,"〉");
@@ -400,7 +408,8 @@ function cleanSegs(segs){
   const out = [];
   for (const s of segs){
     if (s.img){ out.push(s); continue; }
-    let t = s.t.replace(RE_JUNK,"").replace(/[\u00a0\u3000\u2002\u2003\u2009\t\r]/g," ").replace(/ *\n */g,"\n").replace(/ {2,}/g," ");
+    for (const ch of s.t.match(RE_PUA_ALL) || []) PUA_SEEN.add(ch);
+    let t = s.t.replace(RE_PUA_LEAD,"$1○ ").replace(RE_PUA,"").replace(RE_JUNK,"").replace(/[\u00a0\u3000\u2002\u2003\u2009\t\r]/g," ").replace(/ *\n */g,"\n").replace(/ {2,}/g," ");
     if (!t) continue;
     const last = out[out.length-1];
     if (last && !last.img && last.b === s.b) last.t += t; else out.push({t, b:s.b});
@@ -833,7 +842,7 @@ function convert(items, opt){
         const cells = trs.length === 1 ? [...trs[0].children] : [];
         const first = cells.length === 2 ? cells[0].textContent.replace(/\s+/g,"") : "";
         if (/^[\[［【<〈]?(붙임|첨부|별첨|참고)\d*[\]］】>〉]?$/.test(first)){
-          const t = `${first} ${cells[1].textContent.replace(/\s+/g," ").trim()}`;
+          const t = `${first} ${cellPlain(cells[1]).replace(/^○\s*/,"")}`;
           blocks.push({kind:"h3", html:`<h3${sa("h3")}>${esc(t)}</h3>`, text:t, box:true});
           continue;
         }
@@ -967,7 +976,19 @@ function convert(items, opt){
   }
   else if (opt.title) checks.push({w:false, t:"보도자료 제목을 찾지 못했습니다. 필요하면 첫 줄을 <h2>로 감싸세요."});
 
-  const body = blocks.map(b => b.html).join("\n");
+  let body = blocks.map(b => b.html).join("\n");
+  // 마지막 안전장치: 어느 경로로든 남은 사용자 정의 영역 글자를 치환(줄·칸 맨 앞은 "○ ", 나머지는 삭제)
+  for (const ch of body.match(RE_PUA_ALL) || []) PUA_SEEN.add(ch);
+  body = body.replace(/(^|>|\s)[\uE000-\uF8FF\u{F0000}-\u{FFFFD}\u{100000}-\u{10FFFD}]+\s*(?=[^\s<])/gu, "$1○ ").replace(RE_PUA_ALL, "");
+  if (PUA_SEEN.size){
+    const codes = [...PUA_SEEN].map(c => "U+" + c.codePointAt(0).toString(16).toUpperCase()).join(", ");
+    checks.push({w:false, t:`한글 전용 기호(유니코드 사용자 정의 영역 ${codes})를 게시판에 등록되도록 치환했습니다. 글 앞에 붙은 기호는 "○"로, 낱말 사이에 끼인 기호는 삭제. 원문과 모양을 비교하세요.`});
+  }
+  const astral = body.match(RE_ASTRAL);
+  if (astral){
+    body = body.replace(RE_ASTRAL, "");
+    checks.push({w:true, t:`게시판에 저장되지 않는 특수 글자(이모지 등) ${astral.length}개를 지웠습니다: ${[...new Set(astral)].join(" ")} — 원문과 비교하세요.`});
+  }
   const bytes = new TextEncoder().encode(body).length;
   if (bytes > SIZE_WARN){
     checks.push({w:true, t:`결과 코드가 약 ${Math.round(bytes/1024)}KB입니다. 게시판 대부분이 본문 길이를 64KB 안팎으로 제한해 글 등록이 실패할 수 있습니다. "꾸밈 없음"으로 바꾸거나, 큰 표는 첨부파일·이미지로 올리세요.`});
@@ -1024,6 +1045,7 @@ function toast(html){
 
 function run(keepAfter){
   if (!last) return;
+  PUA_SEEN.clear();
   const items = last.html ? itemsFromHtml(last.html) : itemsFromText(last.text);
   if (!items.length){ setStatus("붙여넣은 내용에서 글자를 찾지 못했습니다. 한글에서 글자를 선택해 다시 복사하세요.", true); return; }
   const look = (document.querySelector('input[name="look"]:checked') || {}).value || "full";
