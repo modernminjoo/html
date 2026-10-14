@@ -375,6 +375,11 @@ const RE_PUA_ALL = /[\uE000-\uF8FF\u{F0000}-\u{FFFFD}\u{100000}-\u{10FFFD}]/gu;
 const PUA_SEEN = new Set(); // 이번 문서에서 발견한 사용자 정의 영역 글자
 /* 4바이트 글자(이모지 등): 게시판 DB가 utf8(3바이트)이면 저장 오류 */
 const RE_ASTRAL = /[\u{10000}-\u{10FFFF}]/gu;
+/* 옛 한국어 문자셋(EUC-KR)에 없는 기호 → 모양이 비슷한 안전한 기호. 게시판 DB가 EUC-KR이어도 저장되게 함 */
+const SAFE_SYMBOL = {"◦":"○","❍":"○","▪":"■","◼":"■","▫":"□","◻":"□","▢":"□","•":"·","∙":"·","‧":"·",
+  "‣":"▶","➢":"▶","➤":"▶","►":"▶","▸":"▶","✓":"√","✔":"√","–":"-","‐":"-","−":"-","—":"―"};
+const RE_UNSAFE_SYMBOL = new RegExp("[" + Object.keys(SAFE_SYMBOL).join("") + "]", "g");
+const safeSymbols = t => t.replace(RE_UNSAFE_SYMBOL, c => SAFE_SYMBOL[c]);
 const SIZE_WARN = 60 * 1024;
 const WIDE_COLS = 10; // 이보다 칸이 많으면 넓은 표로 처리
 const safeComment = s => s.replace(/-{2,}/g,"-").replace(/>/g,"〉");
@@ -525,6 +530,8 @@ function bulletOf(t){
   if (d) return {ch:"-", len:d[0].length};
   return null;
 }
+/* 글머리 기호의 기본 단계 */
+const BULLET_RANK = {"□":0,"■":0,"◻":0,"◼":0,"▢":0,"▣":0,"○":1,"●":1,"◦":1,"◎":1,"❍":1,"-":2,"·":3,"∙":3,"•":3,"▪":3,"▫":3};
 const RE_PAGE = /^[-–−]\s*\d{1,3}\s*[-–−]$/;
 const RE_CAPTION = /^[<〈《【\[＜(]?\s*(표|그림)\s*\d/;
 const RE_ATTACH = /^[\[［【<〈]?\s*(붙임|첨부|별첨|참고)\s*\d*\s*[\]］】>〉]/;
@@ -765,17 +772,20 @@ function wrapScroll(html, n, W, checks){
 }
 
 function renderList(items){
-  const root = {kids:[]}; const path = [root];
+  // 단계 숫자를 비교해 부모를 찾음: 자기보다 낮은 단계의 가장 가까운 항목 밑으로
+  const root = {kids:[], level:-1}; const stack = [root];
   for (const it of items){
-    const lvl = Math.min(it.level, path.length - 1);
-    path.length = lvl + 1;
-    const node = {html:it.html, kids:[]};
-    path[lvl].kids.push(node); path.push(node);
+    while (stack.length > 1 && stack[stack.length-1].level >= it.level) stack.pop();
+    const node = {html:it.sym ? `${esc(it.sym)} ${it.html}` : it.html, kids:[], level:it.level};
+    stack[stack.length-1].kids.push(node); stack.push(node);
   }
   const out = [];
   (function walk(nodes, d, depth){
     const pad = "  ".repeat(d);
-    const u = depth ? sa("ul2") : sa("ul"), l = depth ? sa("li2") : sa("li");
+    // 점(•)은 끄고 기호를 글자로 보여 줌. 둘째 줄부터는 기호 뒤에 맞춰 들여씀
+    const base = (depth ? ST.ul2 : ST.ul) || "";
+    const u = ` style="list-style:none;${base.replace(/padding-left:[^;]*;?/g,"")}padding-left:${depth ? "1.2em" : "0"};"`;
+    const l = ` style="${(depth ? ST.li2 : ST.li) || ""}padding-left:1.1em;text-indent:-1.1em;"`;
     out.push(`${pad}<ul${u}>`);
     for (const n of nodes){
       if (n.kids.length){
@@ -912,9 +922,17 @@ function convert(items, opt){
     if (b && list.length && list.endFlag){ flushList(); }
     if (b){
       bulletSeen = true;
-      let lvl = order.indexOf(b.ch);
-      if (lvl < 0){ order.push(b.ch); lvl = order.length - 1; }
-      list.push({level:lvl, indent:it.indent || 0, html:segHtml(dropChars(segs, leadingOffset(segs) + b.len), true)});
+      // 보도자료 관례 단계: □ → ○ → - → ·  (처음 나온 순서가 아니라 기호 종류로 정함)
+      let lvl = BULLET_RANK[b.ch];
+      if (lvl === undefined){
+        const k = order.findIndex(o => o.ch === b.ch);
+        if (k >= 0) lvl = order[k].lvl;
+        else { lvl = Math.min(list.length ? list[list.length-1].level + 1 : 1, 3); order.push({ch:b.ch, lvl}); }
+      }
+      // 더 높은 단계 기호가 나오면 목록을 새로 시작(제목 아래 요약 줄과 본문이 한 목록으로 묶이지 않게)
+      if (list.length && lvl < list[0].level) flushList();
+      // 원문 글머리 기호를 글자로 남김(사이트 CSS가 목록 점을 숨겨도 보이도록)
+      list.push({level:lvl, indent:it.indent || 0, sym:b.ch, html:segHtml(dropChars(segs, leadingOffset(segs) + b.len), true)});
       if (/[<〈＜]\s*끝\s*[>〉＞]\s*$|(^|\s)끝\s*\.?$/.test(text)) list.endFlag = true;
       continue;
     }
@@ -985,6 +1003,7 @@ function convert(items, opt){
     const codes = [...PUA_SEEN].map(c => "U+" + c.codePointAt(0).toString(16).toUpperCase()).join(", ");
     checks.push({w:false, t:`한글 전용 기호(유니코드 사용자 정의 영역 ${codes})를 게시판에 등록되도록 치환했습니다. 글 앞에 붙은 기호는 "○"로, 낱말 사이에 끼인 기호는 삭제. 원문과 모양을 비교하세요.`});
   }
+  body = safeSymbols(body);
   const astral = body.match(RE_ASTRAL);
   if (astral){
     body = body.replace(RE_ASTRAL, "");
