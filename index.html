@@ -235,7 +235,7 @@ button.small{padding:5px 11px;font-size:.84rem}
             <div class="big" contenteditable="false">여기를 누르고 <kbd>Ctrl</kbd>+<kbd>V</kbd></div>
             <div class="sub" contenteditable="false">한글에서 복사한 보도자료를 붙여넣으세요</div>
           </div>
-          <div class="zoneFoot"><button type="button" class="link" id="sampleBtn">예시 문서로 먼저 살펴보기</button></div>
+          <div class="zoneFoot"><button type="button" class="small" id="fileBtn">한글 파일(HWP·HWPX) 올리기</button> <button type="button" class="link" id="sampleBtn">예시 문서로 먼저 살펴보기</button><input type="file" id="fileIn" accept=".hwp,.hwpx" hidden></div>
         </div>
         <div class="doc" id="docInfo" hidden>
           <p class="label">붙여넣은 문서</p>
@@ -539,7 +539,7 @@ const RE_ATTACH = /^[\[［【<〈]?\s*(붙임|첨부|별첨|참고)\s*\d*\s*[\]�
 function looksLikeTitle(t){
   return t.length >= 4 && t.length <= 70 && !/(다|요|음|함|임)\s*[.。!?]?\s*["”’']?$|[.。!?:：]\s*$/.test(t) && !/^[※*]/.test(t);
 }
-const RE_UNIT = /^[(（]?\s*단위\s*[:：]/;
+const RE_UNIT = /^[(（<〈＜\[［]?\s*단위\s*[:：]/;
 const RE_NUMHEAD = /^(\d{1,2}|[IVX]{1,4}|[ⅠⅡⅢⅣⅤⅥⅦⅧⅨⅩ])\s*[.)]\s*\S/;
 const RE_BRACKETHEAD = /^[<〈《【\[＜][^>〉》】\]＞]{1,30}[>〉》】\]＞]$/;
 
@@ -802,6 +802,23 @@ function renderList(items){
 function hpBlock(t){
   return {kind:"hp", text:t, html: t === "보도자료" ? `<p${sa("badge")}>${esc(t)}</p>` : `<p${sa("slogan")}>${esc(t)}</p>`};
 }
+/* 배포 정보 한 줄을 "라벨: 값" 쌍으로 나눔. 칸 3개 이상이거나 칸 안에 "라벨 : 값"이 있을 때만. 못 나누면 null */
+const RE_META_LABEL = /^(배포|보도|담당|문의|연락|작성|엠바고|발송|자료)[가-힣]{0,3}$/;
+function metaPairs(texts){
+  const pairs = []; let cur = null, inline = false;
+  for (const raw of texts){
+    const t = raw.trim();
+    const m = t.match(/^([^:：]{1,10})\s*[:：]\s*(.+)$/);
+    if (m && RE_META_LABEL.test(m[1].replace(/\s+/g,""))){ cur = [fixSpaced(m[1].trim()), m[2].trim()]; pairs.push(cur); inline = true; continue; }
+    const bare = t.replace(/[:：|]\s*$/,"").trim();
+    if (RE_META_LABEL.test(bare.replace(/\s+/g,""))){ cur = [fixSpaced(bare), ""]; pairs.push(cur); continue; }
+    if (!cur) return null;
+    cur[1] = cur[1] ? cur[1] + " / " + t : t;
+  }
+  if (!pairs.length || pairs.some(p => !p[1])) return null;
+  if (texts.length < 3 && !inline) return null;
+  return pairs;
+}
 function headerTable(el, blocks, checks, counters){
   const metas = [];
   const flushMeta = () => { if (metas.length){ blocks.push({kind:"meta", html:`<ul${sa("meta")}${ST.meta ? ' role="list"' : ""}>\n` + metas.map(m=>`  <li${sa("metaLi")}>${m}</li>`).join("\n") + "\n</ul>"}); metas.length = 0; } };
@@ -817,6 +834,8 @@ function headerTable(el, blocks, checks, counters){
       if (t) texts.push(t);
     }
     if (!texts.length) continue;
+    const pairs = metaPairs(texts);
+    if (pairs){ for (const [l, v] of pairs) metas.push(`<strong>${esc(l)}</strong>: ${esc(v)}`); continue; }
     if (texts.length >= 2 && texts[0].replace(/[:：|]\s*$/,"").length <= 10){
       const label = fixSpaced(texts[0].replace(/[:：|]\s*$/,"").trim());
       metas.push(`<strong>${esc(label)}</strong>: ${esc(texts.slice(1).join(" "))}`);
@@ -850,10 +869,10 @@ function convert(items, opt){
       sawContent = true;
       {
         const trs = [...it.el.querySelectorAll("tr")];
-        const cells = trs.length === 1 ? [...trs[0].children] : [];
+        const cells = trs.length === 1 ? [...trs[0].children].filter(c => c.textContent.trim()) : [];
         const first = cells.length === 2 ? cells[0].textContent.replace(/\s+/g,"") : "";
-        if (/^[\[［【<〈]?(붙임|첨부|별첨|참고)\d*[\]］】>〉]?$/.test(first)){
-          const t = `${first} ${cellPlain(cells[1]).replace(/^○\s*/,"")}`;
+        if (/^[\[［【<〈]?(붙임|첨부|별첨|참고)(자료)?\d*[\]］】>〉]?$/.test(first)){
+          const t = `${fixSpaced(cells[0].textContent.trim().replace(/\s+/g," "))} ${cellPlain(cells[1]).replace(/^○\s*/,"")}`;
           blocks.push({kind:"h3", html:`<h3${sa("h3")}>${esc(t)}</h3>`, text:t, box:true});
           continue;
         }
@@ -880,6 +899,13 @@ function convert(items, opt){
       const bare = !title || /^[<〈《【\[＜(]?\s*(표|그림)\s*[\d-]+\s*[>〉》】\]＞)]?$/.test(title);
       const head = [...blocks].reverse().find(b => b.kind !== "img");
       if (bare && head && head.kind === "h3") title = head.text;
+      if (!title){
+        for (let k = blocks.length - 1, seen = 0; k >= 0 && seen < 3; k--, seen++){
+          const b = blocks[k];
+          if (b.kind === "table") break;
+          if (b.kind === "h3" || (b.kind === "p" && b.text && b.text.length <= 80 && (RE_NUMHEAD.test(b.text) || RE_ATTACH.test(b.text)))){ title = b.text; break; }
+        }
+      }
       let cap = title;
       if (!cap){
         cap = `표 ${n}`;
@@ -952,7 +978,7 @@ function convert(items, opt){
     flushList();
 
     const plain = fixSpaced(text);
-    if (text.length <= 40 && (RE_NUMHEAD.test(text) || RE_BRACKETHEAD.test(text) || (opt.boldHead && allBold && !/[.。]$/.test(text)))){
+    if (text.length <= 40 && !RE_UNIT.test(text) && (RE_NUMHEAD.test(text) || RE_BRACKETHEAD.test(text) || (opt.boldHead && allBold && !/[.。]$/.test(text)))){
       blocks.push({kind:"h3", html:`<h3${sa("h3")}>${esc(text)}</h3>`, text});
       continue;
     }
@@ -1198,13 +1224,73 @@ function handlePaste(e){
   $("copyBtn").focus({preventScroll:true});
   toast(`변환했습니다. <b>Enter</b>를 누르면 코드가 복사됩니다.`);
 }
+/* ── 한글 파일 직접 읽기 (kordoc, MIT 라이선스, github.com/chrisryugj/kordoc) ──
+   kordoc.js는 처음 파일을 올릴 때만 불러옴. 파일은 이 컴퓨터 브라우저 안에서만 읽고 서버로 보내지 않음 */
+let kordocLoading = null;
+function loadKordoc(){
+  if (window.kordocParse) return Promise.resolve();
+  if (!kordocLoading) kordocLoading = new Promise((ok, no) => {
+    const sc = document.createElement("script"); sc.src = "kordoc.js";
+    sc.onload = () => window.kordocParse ? ok() : no(new Error("kordoc.js를 불러왔지만 준비되지 않았습니다"));
+    sc.onerror = () => { kordocLoading = null; no(new Error("kordoc.js 파일을 불러오지 못했습니다")); };
+    document.head.appendChild(sc);
+  });
+  return kordocLoading;
+}
+/* kordoc 결과(blocks)를 한글 복사 HTML과 비슷한 단순 HTML로 바꿔 기존 변환 규칙에 넘김 */
+function blocksToHtml(blocks){
+  const e = s => String(s == null ? "" : s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+  const para = b => b.spans ? b.spans.map(x => x.bold ? `<b>${e(x.text)}</b>` : e(x.text)).join("") : e(b.text);
+  return blocks.map(b => {
+    if (b.type === "image") return '<p><img alt=""></p>';
+    if (b.type === "table"){
+      const t = b.table, cov = new Set();
+      let h = (t.caption ? `<p>${e(t.caption)}</p>` : "") + "<table>";
+      t.cells.forEach((r, i) => {
+        h += "<tr>";
+        r.forEach((c, j) => {
+          if (!c || cov.has(i + "," + j)) return; // 병합으로 가려진 칸은 건너뜀
+          for (let a = 0; a < (c.rowSpan || 1); a++) for (let d = 0; d < (c.colSpan || 1); d++) if (a || d) cov.add((i + a) + "," + (j + d));
+          h += `<td${c.colSpan > 1 ? ` colspan="${c.colSpan}"` : ""}${c.rowSpan > 1 ? ` rowspan="${c.rowSpan}"` : ""}>${e(c.text).replace(/\n/g, "<br>")}</td>`;
+        });
+        h += "</tr>";
+      });
+      return h + "</table>";
+    }
+    if (b.type === "list" && b.items) return b.items.map(x => `<p>${e(x.text || x)}</p>`).join("");
+    return `<p>${para(b)}</p>`;
+  }).join("\n");
+}
+async function handleFile(file){
+  if (!/\.(hwp|hwpx)$/i.test(file.name)){ setStatus("한글 파일(.hwp, .hwpx)만 올릴 수 있습니다.", true); return; }
+  setStatus("한글 파일을 읽는 중입니다…");
+  try {
+    await loadKordoc();
+    const res = await window.kordocParse(await file.arrayBuffer());
+    if (!res || !res.success || !res.blocks || !res.blocks.length){ setStatus("파일을 읽지 못했습니다" + (res && res.error ? `(${res.error})` : "") + ". 한글에서 복사해 붙여넣어 주세요.", true); return; }
+    last = {html: "<body>" + blocksToHtml(res.blocks) + "</body>", text: "", file: file.name};
+  } catch (err){
+    setStatus("파일을 읽지 못했습니다(" + (err && err.message || err) + "). 한글에서 복사해 붙여넣어 주세요.", true); return;
+  }
+  delete $("copyBtn").dataset.copied;
+  run();
+  if (!lastRes) return;
+  setSteps(3);
+  selectTab("prev", false);
+  $("result").scrollIntoView({block:"start"});
+  $("copyBtn").focus({preventScroll:true});
+  toast(`파일을 변환했습니다. <b>Enter</b>를 누르면 코드가 복사됩니다.`);
+}
+$("fileBtn").addEventListener("click", () => $("fileIn").click());
+$("fileIn").addEventListener("change", e => { const f = e.target.files && e.target.files[0]; if (f) handleFile(f); e.target.value = ""; });
+
 document.addEventListener("paste", e => {
   if (e.target && e.target.closest && e.target.closest("textarea, input")) return;
   handlePaste(e);
 });
 zone.addEventListener("beforeinput", e => { if (e.inputType !== "insertFromPaste") e.preventDefault(); });
 zone.addEventListener("keydown", e => { if (!(e.ctrlKey || e.metaKey) && e.key.length === 1) e.preventDefault(); });
-zone.addEventListener("drop", e => e.preventDefault());
+zone.addEventListener("drop", e => { e.preventDefault(); zone.classList.remove("hot"); const f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]; if (f) handleFile(f); });
 zone.addEventListener("dragover", e => { e.preventDefault(); zone.classList.add("hot"); });
 zone.addEventListener("dragleave", () => zone.classList.remove("hot"));
 
