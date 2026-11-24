@@ -18,6 +18,7 @@
 | `index.html` | 변환기 본체(화면 + 변환 규칙). 외부 의존은 구글 웹폰트뿐 |
 | `kordoc.js` | 한글 파일 읽기용(약 1.3MB). 파일을 처음 올릴 때만 불러옴. 붙여넣기만 쓰면 불러오지 않음 |
 | `README.md` | 이 문서 |
+| `kordoc-build/` | kordoc.js를 다시 만들 때만 쓰는 개발자용 파일 |
 
 `index.html`과 `kordoc.js`는 **반드시 저장소 맨 위(같은 위치)**에 있어야 합니다.
 
@@ -34,7 +35,7 @@
 | 표 병합 칸, 표 제목·단위, 배포 정보, 글머리 단계 | 이미지 자동 옮김(게시판에서 직접 넣기) |
 
 ## kordoc.js 다시 만들기
-`kordoc.js`는 오픈소스 [kordoc](https://github.com/chrisryugj/kordoc)(MIT)을 브라우저에서 돌도록 묶은 파일입니다. kordoc을 새 버전으로 바꿀 때만 다시 만듭니다. 만드는 방법과 대체 파일(shim)은 별도 보관본 `3_kordoc_브라우저용_만들기`에 있습니다.
+`kordoc.js`는 오픈소스 [kordoc](https://github.com/chrisryugj/kordoc)(MIT)을 브라우저에서 돌도록 묶은 파일입니다. 평소에는 손댈 일이 없고, kordoc을 새 버전으로 바꿀 때만 다시 만듭니다. 만드는 방법과 대체 파일(shim)은 이 저장소의 `kordoc-build/` 폴더에 있습니다(개발자용, 사이트 동작과는 무관).
 
 ## 오픈소스 라이선스
 `kordoc.js`에는 다음 오픈소스가 들어 있습니다.
